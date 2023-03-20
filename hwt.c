@@ -90,7 +90,7 @@ hwt_alloc_hwt(int fd, int cpuid, int *hwt_id)
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
 	struct hwt_attach a;
 	struct hwt_start s;
@@ -104,7 +104,9 @@ main(void)
 
 	sprintf(filename, "/dev/hwt");
 
-	char *cmd[2] = {"uname", NULL};
+	argv += 1;
+	char **cmd = argv;
+	printf("cmd %s\n", *cmd);
 
 	error = hwt_create_process(sockpair, cmd, &pid);
 	if (error != 0)
