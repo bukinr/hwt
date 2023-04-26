@@ -104,7 +104,7 @@ hwt_map_memory(struct trace_context *tc)
 	char filename[32];
 	int fd;
 
-	sprintf(filename, "/dev/hwt_%d", tc->hwt_id);
+	sprintf(filename, "/dev/hwt_ctx_%d", tc->hwt_id);
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
