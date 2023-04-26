@@ -18,6 +18,7 @@
 struct trace_context {
 	int hwt_id;
 	int bufsize;
+	void *base;
 };
 
 static int
@@ -101,7 +102,6 @@ static int
 hwt_map_memory(struct trace_context *tc)
 {
 	char filename[32];
-	void *base;
 	int fd;
 
 	sprintf(filename, "/dev/hwt_%d", tc->hwt_id);
@@ -112,8 +112,8 @@ hwt_map_memory(struct trace_context *tc)
 		return (-1);
 	}
 
-	base = mmap(NULL, tc->bufsize, PROT_READ, MAP_SHARED, fd, 0);
-	if (base == MAP_FAILED) {
+	tc->base = mmap(NULL, tc->bufsize, PROT_READ, MAP_SHARED, fd, 0);
+	if (tc->base == MAP_FAILED) {
 		printf("mmap failed: err %d\n", errno);
 		return (-1);
 	}
