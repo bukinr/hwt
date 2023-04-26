@@ -1,5 +1,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/errno.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +18,7 @@
 struct trace_context {
 	int hwt_id;
 	int bufsize;
-}
+};
 
 static int
 hwt_create_process(int *sockpair, char **cmd, int *pid0)
@@ -90,18 +92,19 @@ hwt_alloc_hwt(int fd, int cpuid, struct trace_context *tc)
 	if (error != 0)
 		return (error);
 
-	tc->hwt_id = al.hwt_id;
+	tc->hwt_id = *al.hwt_id;
 
 	return (0);
 }
 
 static int
-hwt_map_memory(int hwt_id)
+hwt_map_memory(struct trace_context *tc)
 {
 	char filename[32];
+	void *base;
 	int fd;
 
-	sprintf(filename, "/dev/hwt_%d", hwt_id);
+	sprintf(filename, "/dev/hwt_%d", tc->hwt_id);
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
@@ -161,7 +164,7 @@ main(int argc, char **argv)
 		tc = &tcs[i];
 
 		if (i == 0)
-			tc.bufsize = 4096 * 8;
+			tc->bufsize = 4096 * 8;
 
 		error = hwt_alloc_hwt(fd, i, tc);
 		printf("%s: error %d, cpuid %d hwt_id %d\n", __func__, error,
