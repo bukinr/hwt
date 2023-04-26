@@ -1,2 +1,2 @@
 all:
-	cc hwt.c -o hwt
+	cc -lopencsd -lm -lc++ hwt.c -o hwt

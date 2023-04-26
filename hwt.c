@@ -13,6 +13,11 @@
 #define	PARENTSOCKET		0
 #define	CHILDSOCKET		1
 
+struct trace_context {
+	int hwt_id;
+	int bufsize;
+}
+
 static int
 hwt_create_process(int *sockpair, char **cmd, int *pid0)
 {
@@ -74,17 +79,41 @@ hwt_start_process(int *sockpair)
 }
 
 static int
-hwt_alloc_hwt(int fd, int cpuid, int *hwt_id)
+hwt_alloc_hwt(int fd, int cpuid, struct trace_context *tc)
 {
 	struct hwt_alloc al;
 	int error;
 
-	al.hwt_id = hwt_id;
 	al.cpu_id = cpuid;
 
 	error = ioctl(fd, HWT_IOC_ALLOC, &al);
 	if (error != 0)
 		return (error);
+
+	tc->hwt_id = al.hwt_id;
+
+	return (0);
+}
+
+static int
+hwt_map_memory(int hwt_id)
+{
+	char filename[32];
+	int fd;
+
+	sprintf(filename, "/dev/hwt_%d", hwt_id);
+
+	fd = open(filename, O_RDONLY);
+	if (fd < 0) {
+		printf("Can't open %s\n", filename);
+		return (-1);
+	}
+
+	base = mmap(NULL, tc->bufsize, PROT_READ, MAP_SHARED, fd, 0);
+	if (base == MAP_FAILED) {
+		printf("mmap failed: err %d\n", errno);
+		return (-1);
+	}
 
 	return (0);
 }
@@ -95,6 +124,8 @@ main(int argc, char **argv)
 	struct hwt_attach a;
 	struct hwt_start s;
 	char filename[20];
+	struct trace_context tcs[4];
+	struct trace_context *tc;
 	int hwt_id;
 	int error;
 	int fd;
@@ -127,7 +158,12 @@ main(int argc, char **argv)
 	}
 
 	for (i = 0; i < 4; i++) {
-		error = hwt_alloc_hwt(fd, i, &hwt_id);
+		tc = &tcs[i];
+
+		if (i == 0)
+			tc.bufsize = 4096 * 8;
+
+		error = hwt_alloc_hwt(fd, i, tc);
 		printf("%s: error %d, cpuid %d hwt_id %d\n", __func__, error,
 		    i, hwt_id);
 		if (error)
@@ -139,6 +175,9 @@ main(int argc, char **argv)
 		printf("%s: ioctl attach returned %d\n", __func__, error);
 		if (error)
 			return (error);
+
+		if (i == 0)
+			hwt_map_memory(tc);
 
 		s.hwt_id = hwt_id;
 		error = ioctl(fd, HWT_IOC_START, &s);
