@@ -129,7 +129,6 @@ main(int argc, char **argv)
 	char filename[20];
 	struct trace_context tcs[4];
 	struct trace_context *tc;
-	int hwt_id;
 	int error;
 	int fd;
 	int i;
@@ -168,21 +167,26 @@ main(int argc, char **argv)
 
 		error = hwt_alloc_hwt(fd, i, tc);
 		printf("%s: error %d, cpuid %d hwt_id %d\n", __func__, error,
-		    i, hwt_id);
+		    i, tc->hwt_id);
 		if (error)
 			return (error);
 
 		a.pid = pid;
-		a.hwt_id = hwt_id;
+		a.hwt_id = tc->hwt_id;
 		error = ioctl(fd, HWT_IOC_ATTACH, &a);
 		printf("%s: ioctl attach returned %d\n", __func__, error);
 		if (error)
 			return (error);
 
-		if (i == 0)
-			hwt_map_memory(tc);
+		if (i == 0) {
+			error = hwt_map_memory(tc);
+			if (error != 0) {
+				printf("can't map memory");
+				return (error);
+			}
+		}
 
-		s.hwt_id = hwt_id;
+		s.hwt_id = tc->hwt_id;
 		error = ioctl(fd, HWT_IOC_START, &s);
 		printf("%s: ioctl start returned %d\n", __func__, error);
 		if (error)
