@@ -245,7 +245,7 @@ cs_process_chunk(struct trace_context *tc)
 	int dp_ret;
 	int ret;
 
-	dprintf("%s\n", __func__);
+	dprintf("%s: tc->base %#p\n", __func__, tc->base);
 
 	bytes_this_time = 0;
 	block_index = 0;
