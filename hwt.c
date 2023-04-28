@@ -10,17 +10,12 @@
 #include <signal.h>
 
 #include "hwt.h"
+#include "hwt_var.h"
 #include "cs.h"
 
 #define	NSOCKPAIRFD		2
 #define	PARENTSOCKET		0
 #define	CHILDSOCKET		1
-
-struct trace_context {
-	int hwt_id;
-	int bufsize;
-	void *base;
-};
 
 static int
 hwt_create_process(int *sockpair, char **cmd, int *pid0)
@@ -199,7 +194,7 @@ main(int argc, char **argv)
 	if (error != 0)
 		return (error);
 
-	cs_init();
+	cs_init(tc);
 
 	while (1)
 		sleep(5);
