@@ -18,10 +18,34 @@
 
 static dcd_tree_handle_t dcdtree_handle;
 static int cs_flags = 0;
-#define	FLAG_FORMAT	(1 << 0)
+#define	FLAG_FORMAT			(1 << 0)
+#define	FLAG_FRAME_RAW_UNPACKED		(1 << 1)
+#define	FLAG_FRAME_RAW_PACKED		(1 << 2)
+#define	FLAG_CALLBACK_MEM_ACC		(1 << 3)
 
 #define	PACKET_STR_LEN	1024
 static char packet_str[PACKET_STR_LEN];
+
+static ocsd_err_t
+attach_raw_printers(dcd_tree_handle_t dcd_tree_h)
+{
+	ocsd_err_t err;
+	int flags;
+
+	flags = 0;
+	err = OCSD_OK;
+
+	if (cs_flags & FLAG_FRAME_RAW_UNPACKED)
+		flags |= OCSD_DFRMTR_UNPACKED_RAW_OUT;
+
+	if (cs_flags & FLAG_FRAME_RAW_PACKED)
+		flags |= OCSD_DFRMTR_PACKED_RAW_OUT;
+
+	if (flags)
+		err = ocsd_dt_set_raw_frame_printer(dcd_tree_h, flags);
+
+	return err;
+}
 
 static int
 print_data_array(const uint8_t *p_array, const int array_size,
@@ -116,8 +140,8 @@ cs_cs_decoder__mem_access(const void *context __unused,
 }
 
 static ocsd_err_t
-create_test_memory_acc(dcd_tree_handle_t handle, uint64_t base,
-    uint64_t start, uint64_t end)
+create_test_memory_acc(dcd_tree_handle_t handle, uintptr_t base,
+    uintptr_t start, uintptr_t end)
 {
 	ocsd_vaddr_t address;
 	uint8_t *p_mem_buffer;
@@ -129,7 +153,7 @@ create_test_memory_acc(dcd_tree_handle_t handle, uint64_t base,
 
 	address = (ocsd_vaddr_t)base;
 	p_mem_buffer = (uint8_t *)(base + start);
-	mem_length = (end-start);
+	mem_length = (end - start);
 
 	if (cs_flags & FLAG_CALLBACK_MEM_ACC)
 		ret = ocsd_dt_add_callback_mem_acc(handle, base + start,
@@ -240,10 +264,12 @@ cs_init(struct trace_context *tc)
 
 	if (cs_flags & FLAG_FORMAT)
 		ocsd_dt_set_gen_elem_printer(dcdtree_handle);
+#if 0
 	else
 		ocsd_dt_set_gen_elem_outfn(dcdtree_handle,
 		    gen_trace_elem_print_lookup,
 		    (const struct mtrace_data *)&tc->mdata);
+#endif
 
 	attach_raw_printers(dcdtree_handle);
 
