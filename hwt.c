@@ -188,6 +188,7 @@ main(int argc, char **argv)
 		if (error)
 			return (error);
 	}
+
 	close(fd);
 
 	error = hwt_start_process(sockpair);
@@ -195,6 +196,12 @@ main(int argc, char **argv)
 		return (error);
 
 	cs_init(tc);
+
+	printf("sleeping 5\n");
+	sleep(5);
+
+	printf("processing\n");
+	cs_process_chunk(tc);
 
 	while (1)
 		sleep(5);

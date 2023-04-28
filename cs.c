@@ -8,7 +8,7 @@
 #include "cs.h"
 
 #define	PMCTRACE_CS_DEBUG
-#undef	PMCTRACE_CS_DEBUG
+//#undef	PMCTRACE_CS_DEBUG
 
 #ifdef	PMCTRACE_CS_DEBUG
 #define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
@@ -234,7 +234,7 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 	return (ret);
 }
 
-static int
+int
 cs_process_chunk(struct trace_context *tc)
 {
 	uint32_t bytes_done;
