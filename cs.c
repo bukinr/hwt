@@ -293,7 +293,7 @@ gen_trace_elem_print_lookup(const void *p_context,
 	struct pmcstat_symbol *sym;
 	struct pmcstat_image *image;
 
-	tc = (const struct mtrace_data *)p_context;
+	tc = (const struct trace_context *)p_context;
 
 	resp = OCSD_RESP_CONT;
 
