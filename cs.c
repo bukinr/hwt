@@ -290,8 +290,6 @@ gen_trace_elem_print_lookup(const void *p_context,
 {
 	const struct trace_context *tc;
 	ocsd_datapath_resp_t resp;
-	struct pmcstat_symbol *sym;
-	struct pmcstat_image *image;
 
 	tc = (const struct trace_context *)p_context;
 
@@ -307,6 +305,8 @@ gen_trace_elem_print_lookup(const void *p_context,
 		return (0);
 
 #if 0
+	struct pmcstat_symbol *sym;
+	struct pmcstat_image *image;
 	sym = symbol_lookup(mdata, elem->st_addr, &image);
 	if (sym)
 		printf("cpu%d:  IP 0x%lx %s %s\n", mdata->cpu, elem->st_addr,
