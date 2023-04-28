@@ -10,6 +10,7 @@
 #include <signal.h>
 
 #include "hwt.h"
+#include "cs.h"
 
 #define	NSOCKPAIRFD		2
 #define	PARENTSOCKET		0
@@ -197,6 +198,8 @@ main(int argc, char **argv)
 	error = hwt_start_process(sockpair);
 	if (error != 0)
 		return (error);
+
+	cs_init();
 
 	while (1)
 		sleep(5);
