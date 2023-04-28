@@ -234,6 +234,54 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 	return (ret);
 }
 
+static int
+cs_process_chunk(struct trace_context *tc)
+{
+	uint32_t bytes_done;
+	uint32_t block_size;
+	uint8_t *p_block;
+	uint32_t bytes_this_time;
+	int block_index;
+	int dp_ret;
+	int ret;
+
+	dprintf("%s\n", __func__);
+
+	bytes_this_time = 0;
+	block_index = 0;
+	bytes_done = 0;
+	block_size = tc->bufsize;
+	p_block = (uint8_t *)(tc->base + 0);
+
+	ret = OCSD_OK;
+	dp_ret = OCSD_RESP_CONT;
+
+	while (bytes_done < (uint32_t)block_size && (ret == OCSD_OK)) {
+
+		if (OCSD_DATA_RESP_IS_CONT(dp_ret)) {
+			dprintf("process data, block_size %d, bytes_done %d\n",
+			    block_size, bytes_done);
+			dp_ret = ocsd_dt_process_data(dcdtree_handle,
+			    OCSD_OP_DATA,
+			    block_index + bytes_done,
+			    block_size - bytes_done,
+			    ((uint8_t *)p_block) + bytes_done,
+			    &bytes_this_time);
+			bytes_done += bytes_this_time;
+			dprintf("BYTES DONE %d\n", bytes_done);
+		} else if (OCSD_DATA_RESP_IS_WAIT(dp_ret)) {
+			dp_ret = ocsd_dt_process_data(dcdtree_handle,
+			    OCSD_OP_FLUSH, 0, 0, NULL, NULL);
+		} else {
+			ret = OCSD_ERR_DATA_DECODE_FATAL;
+		}
+	}
+
+	ocsd_dt_process_data(dcdtree_handle, OCSD_OP_EOT, 0, 0, NULL, NULL);
+
+	return (0);
+}
+
 int
 cs_init(struct trace_context *tc)
 {
