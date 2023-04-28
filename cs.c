@@ -140,28 +140,32 @@ cs_cs_decoder__mem_access(const void *context __unused,
 }
 
 static ocsd_err_t
-create_test_memory_acc(dcd_tree_handle_t handle, uintptr_t base,
-    uintptr_t start, uintptr_t end)
+create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 {
 	ocsd_vaddr_t address;
 	uint8_t *p_mem_buffer;
 	uint32_t mem_length;
 	int ret;
 
-	dprintf("%s: base %lx start %lx end %lx\n",
-	    __func__, base, start, end);
+	dprintf("%s\n", __func__);
 
-	address = (ocsd_vaddr_t)base;
-	p_mem_buffer = (uint8_t *)(base + start);
-	mem_length = (end - start);
-
+#if 0
 	if (cs_flags & FLAG_CALLBACK_MEM_ACC)
 		ret = ocsd_dt_add_callback_mem_acc(handle, base + start,
 			base + end - 1, OCSD_MEM_SPACE_ANY,
 			cs_cs_decoder__mem_access, NULL);
 	else
+#endif
+	{
+
+		address = (ocsd_vaddr_t)tc->base;
+
+		p_mem_buffer = (uint8_t *)(tc->base + 0);
+		mem_length = tc->bufsize;
+
 		ret = ocsd_dt_add_buffer_mem_acc(handle, address,
 		    OCSD_MEM_SPACE_ANY, p_mem_buffer, mem_length);
+	}
 
 	if (ret != OCSD_OK)
 		printf("%s: can't create memory accessor: ret %d\n",
@@ -172,8 +176,8 @@ create_test_memory_acc(dcd_tree_handle_t handle, uintptr_t base,
 
 static ocsd_err_t
 create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
-    const void *p_cfg, const void *p_context __unused, uint64_t base,
-    uint64_t start, uint64_t end)
+    const void *p_cfg, const void *p_context __unused,
+    struct trace_context *tc)
 {
 	ocsd_err_t ret;
 	uint8_t CSID;
@@ -184,7 +188,7 @@ create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
 
 	ret = ocsd_dt_create_decoder(handle, p_name,
 	    OCSD_CREATE_FLG_FULL_DECODER, p_cfg, &CSID);
-	if(ret != OCSD_OK)
+	if (ret != OCSD_OK)
 		return (-1);
 
 	if (cs_flags & FLAG_FORMAT) {
@@ -195,16 +199,15 @@ create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
 	}
 
 	/* attach a memory accessor */
-	ret = create_test_memory_acc(handle, base, start, end);
-	if(ret != OCSD_OK)
-		ocsd_dt_remove_decoder(handle,CSID);
+	ret = create_test_memory_acc(handle, tc);
+	if (ret != OCSD_OK)
+		ocsd_dt_remove_decoder(handle, CSID);
 
 	return (ret);
 }
 
 static ocsd_err_t
-create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, uint64_t base,
-    uint64_t start, uint64_t end)
+create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 {
 	ocsd_etmv4_cfg trace_config;
 	ocsd_err_t ret;
@@ -226,7 +229,7 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, uint64_t base,
 	trace_config.reg_idr13  = 0x0;
 
 	ret = create_generic_decoder(dcd_tree_h, OCSD_BUILTIN_DCD_ETMV4I,
-	    (void *)&trace_config, 0, base, start, end);
+	    (void *)&trace_config, 0, tc);
 
 	return (ret);
 }
@@ -247,14 +250,9 @@ cs_init(struct trace_context *tc)
 		return (-1);
 	}
 
-	start = (uintptr_t)tc->base;
-	end = (uintptr_t)tc->base + tc->bufsize;
-
-	error = create_decoder_etmv4(dcdtree_handle,
-	    (uint64_t)tc->base, start, end);
+	error = create_decoder_etmv4(dcdtree_handle, tc);
 	if (error != OCSD_OK) {
-		printf("can't create decoder: base %lx start %lx end %lx\n",
-		    (uint64_t)tc->base, start, end);
+		printf("can't create decoder: tc->base %#p\n", tc->base);
 		return (-2);
 	}
 
