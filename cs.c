@@ -282,6 +282,67 @@ cs_process_chunk(struct trace_context *tc)
 	return (0);
 }
 
+static ocsd_datapath_resp_t
+gen_trace_elem_print_lookup(const void *p_context,
+    const ocsd_trc_index_t index_sop __unused,
+    const uint8_t trc_chan_id __unused,
+    const ocsd_generic_trace_elem *elem __unused)
+{
+	const struct trace_context *tc;
+	ocsd_datapath_resp_t resp;
+	struct pmcstat_symbol *sym;
+	struct pmcstat_image *image;
+
+	tc = (const struct mtrace_data *)p_context;
+
+	resp = OCSD_RESP_CONT;
+
+#if 1
+	dprintf("%s: Idx:%d ELEM TYPE %d, st_addr %lx, en_addr %lx\n",
+	    __func__, index_sop, elem->elem_type,
+	    elem->st_addr, elem->en_addr);
+#endif
+
+	if (elem->st_addr == 0)
+		return (0);
+
+#if 0
+	sym = symbol_lookup(mdata, elem->st_addr, &image);
+	if (sym)
+		printf("cpu%d:  IP 0x%lx %s %s\n", mdata->cpu, elem->st_addr,
+		    pmcstat_string_unintern(image->pi_name),
+		    pmcstat_string_unintern(sym->ps_name));
+#endif
+
+	switch (elem->elem_type) {
+	case OCSD_GEN_TRC_ELEM_UNKNOWN:
+		break;
+	case OCSD_GEN_TRC_ELEM_NO_SYNC:
+		/* Trace off */
+		break;
+	case OCSD_GEN_TRC_ELEM_TRACE_ON:
+		break;
+	case OCSD_GEN_TRC_ELEM_INSTR_RANGE:
+		printf("range\n");
+		break;
+	case OCSD_GEN_TRC_ELEM_EXCEPTION:
+	case OCSD_GEN_TRC_ELEM_EXCEPTION_RET:
+	case OCSD_GEN_TRC_ELEM_PE_CONTEXT:
+	case OCSD_GEN_TRC_ELEM_EO_TRACE:
+	case OCSD_GEN_TRC_ELEM_ADDR_NACC:
+	case OCSD_GEN_TRC_ELEM_TIMESTAMP:
+	case OCSD_GEN_TRC_ELEM_CYCLE_COUNT:
+	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
+	case OCSD_GEN_TRC_ELEM_EVENT:
+	case OCSD_GEN_TRC_ELEM_SWTRACE:
+	case OCSD_GEN_TRC_ELEM_CUSTOM:
+	default:
+		break;
+	};
+
+	return (resp);
+}
+
 int
 cs_init(struct trace_context *tc)
 {
@@ -308,14 +369,13 @@ cs_init(struct trace_context *tc)
 	ocsd_tl_log_mapped_mem_ranges(dcdtree_handle);
 #endif
 
+	//cs_flags |= FLAG_FORMAT;
+
 	if (cs_flags & FLAG_FORMAT)
 		ocsd_dt_set_gen_elem_printer(dcdtree_handle);
-#if 0
 	else
 		ocsd_dt_set_gen_elem_outfn(dcdtree_handle,
-		    gen_trace_elem_print_lookup,
-		    (const struct mtrace_data *)&tc->mdata);
-#endif
+		    gen_trace_elem_print_lookup, tc);
 
 	attach_raw_printers(dcdtree_handle);
 

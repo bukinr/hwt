@@ -114,6 +114,8 @@ hwt_map_memory(struct trace_context *tc)
 		return (-1);
 	}
 
+	printf("%s: tc->base %#p\n", __func__, tc->base);
+
 	return (0);
 }
 
@@ -194,6 +196,8 @@ main(int argc, char **argv)
 	error = hwt_start_process(sockpair);
 	if (error != 0)
 		return (error);
+
+	tc = &tcs[0];
 
 	cs_init(tc);
 
