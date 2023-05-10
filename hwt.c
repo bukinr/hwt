@@ -17,12 +17,16 @@
 #define	PARENTSOCKET		0
 #define	CHILDSOCKET		1
 
+extern char **environ;
+
 static int
-hwt_create_process(int *sockpair, char **cmd, int *pid0)
+hwt_create_process(int *sockpair, char **cmd, char **env, int *pid0)
 {
 	char token;
 	pid_t pid;
 	int error;
+
+	printf("cmd %s\n", *cmd);
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockpair) < 0)
 		return (-1);
@@ -49,7 +53,9 @@ hwt_create_process(int *sockpair, char **cmd, int *pid0)
 
 		close(sockpair[CHILDSOCKET]);
 
-		execvp(*cmd, cmd);
+		//execvp(*cmd, cmd);
+		char *cmd1 = {"/usr/bin/uname"};
+		execve(&cmd1[0], &cmd1, NULL);
 
 		kill(getppid(), SIGCHLD);
 
@@ -120,7 +126,7 @@ hwt_map_memory(struct trace_context *tc)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char **argv, char **env)
 {
 	struct hwt_attach a;
 	struct hwt_start s;
@@ -133,13 +139,14 @@ main(int argc, char **argv)
 	int sockpair[NSOCKPAIRFD];
 	int pid;
 
+	printf("env %s\n", (char *)environ);
+
 	sprintf(filename, "/dev/hwt");
 
-	argv += 1;
-	char **cmd = argv;
-	printf("cmd %s\n", *cmd);
+	//argv += 1;
+	//char **cmd = argv;
 
-	error = hwt_create_process(sockpair, cmd, &pid);
+	error = hwt_create_process(sockpair, &argv[1], env, &pid);
 	if (error != 0)
 		return (error);
 
@@ -197,18 +204,14 @@ main(int argc, char **argv)
 	if (error != 0)
 		return (error);
 
+	printf("waiting proc to finish\n");
+	sleep(1);
+
 	tc = &tcs[0];
-
 	cs_init(tc);
-
-	printf("sleeping 5\n");
-	sleep(5);
 
 	printf("processing\n");
 	cs_process_chunk(tc);
-
-	while (1)
-		sleep(5);
 
 	return (0);
 }

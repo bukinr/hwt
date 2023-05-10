@@ -92,7 +92,7 @@ packet_monitor(void *context __unused,
 
 	offset = 0;
 
-	switch(op) {
+	switch (op) {
 	case OCSD_OP_DATA:
 		sprintf(packet_str, "Idx:%"  OCSD_TRC_IDX_STR ";", index_sop);
 		offset = strlen(packet_str);
@@ -157,8 +157,11 @@ create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 	else
 #endif
 	{
-
 		address = (ocsd_vaddr_t)tc->base;
+
+		uint64_t *t;
+		t = (uint64_t *)tc->base;
+		printf("%lx %lx %lx %lx\n", t[0], t[1], t[2], t[3]);
 
 		p_mem_buffer = (uint8_t *)(tc->base + 0);
 		mem_length = tc->bufsize;
@@ -215,12 +218,13 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 	trace_config.arch_ver = ARCH_V8;
 	trace_config.core_prof = profile_CortexA;
 
+	trace_config.reg_configr = 0x00001fc6;
 	trace_config.reg_configr = 0x000000C1;
 	trace_config.reg_traceidr = 0x00000010;   /* Trace ID */
 
-	trace_config.reg_idr0   = 0x28000EA1;
-	trace_config.reg_idr1   = 0x4100F403;
-	trace_config.reg_idr2   = 0x00000488;
+	trace_config.reg_idr0   = 0x28000ea1;
+	trace_config.reg_idr1   = 0x4100f424;
+	trace_config.reg_idr2   = 0x20001088;
 	trace_config.reg_idr8   = 0x0;
 	trace_config.reg_idr9   = 0x0;
 	trace_config.reg_idr10  = 0x0;
@@ -228,6 +232,7 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 	trace_config.reg_idr12  = 0x0;
 	trace_config.reg_idr13  = 0x0;
 
+	/* Instruction decoder. */
 	ret = create_generic_decoder(dcd_tree_h, OCSD_BUILTIN_DCD_ETMV4I,
 	    (void *)&trace_config, 0, tc);
 
@@ -286,7 +291,7 @@ static ocsd_datapath_resp_t
 gen_trace_elem_print_lookup(const void *p_context,
     const ocsd_trc_index_t index_sop __unused,
     const uint8_t trc_chan_id __unused,
-    const ocsd_generic_trace_elem *elem __unused)
+    const ocsd_generic_trace_elem *elem)
 {
 	const struct trace_context *tc;
 	ocsd_datapath_resp_t resp;
@@ -295,14 +300,16 @@ gen_trace_elem_print_lookup(const void *p_context,
 
 	resp = OCSD_RESP_CONT;
 
-#if 1
+#if 0
 	dprintf("%s: Idx:%d ELEM TYPE %d, st_addr %lx, en_addr %lx\n",
 	    __func__, index_sop, elem->elem_type,
 	    elem->st_addr, elem->en_addr);
 #endif
 
+printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
+
 	if (elem->st_addr == 0)
-		return (0);
+		return (OCSD_RESP_CONT);
 
 #if 0
 	struct pmcstat_symbol *sym;
@@ -318,6 +325,7 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_UNKNOWN:
 		break;
 	case OCSD_GEN_TRC_ELEM_NO_SYNC:
+		printf("Waiting for sync.\n");
 		/* Trace off */
 		break;
 	case OCSD_GEN_TRC_ELEM_TRACE_ON:
@@ -350,7 +358,7 @@ cs_init(struct trace_context *tc)
 	int error;
 
 	ocsd_def_errlog_init(OCSD_ERR_SEV_INFO, 1);
-	ocsd_def_errlog_init(0, 0);
+	//ocsd_def_errlog_init(0, 0);
 
 	dcdtree_handle = ocsd_create_dcd_tree(OCSD_TRC_SRC_FRAME_FORMATTED,
 	    OCSD_DFRMTR_FRAME_MEM_ALIGN);
@@ -358,6 +366,8 @@ cs_init(struct trace_context *tc)
 		printf("can't find dcd tree\n");
 		return (-1);
 	}
+
+	//cs_flags |= FLAG_FORMAT;
 
 	error = create_decoder_etmv4(dcdtree_handle, tc);
 	if (error != OCSD_OK) {
@@ -368,8 +378,6 @@ cs_init(struct trace_context *tc)
 #ifdef PMCTRACE_CS_DEBUG
 	ocsd_tl_log_mapped_mem_ranges(dcdtree_handle);
 #endif
-
-	//cs_flags |= FLAG_FORMAT;
 
 	if (cs_flags & FLAG_FORMAT)
 		ocsd_dt_set_gen_elem_printer(dcdtree_handle);
