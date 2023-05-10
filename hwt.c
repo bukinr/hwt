@@ -53,13 +53,11 @@ hwt_create_process(int *sockpair, char **cmd, char **env, int *pid0)
 
 		close(sockpair[CHILDSOCKET]);
 
-		//execvp(*cmd, cmd);
-		char *cmd1 = {"/usr/bin/uname"};
-		execve(&cmd1[0], &cmd1, NULL);
+		execvp(cmd[0], cmd);
 
 		kill(getppid(), SIGCHLD);
 
-		return (-3);
+		exit(-3);
 	default:
 		/* Parent */
 		close(sockpair[CHILDSOCKET]);
@@ -133,20 +131,18 @@ main(int argc, char **argv, char **env)
 	char filename[20];
 	struct trace_context tcs[4];
 	struct trace_context *tc;
+	char **cmd;
 	int error;
 	int fd;
 	int i;
 	int sockpair[NSOCKPAIRFD];
 	int pid;
 
-	printf("env %s\n", (char *)environ);
-
 	sprintf(filename, "/dev/hwt");
 
-	//argv += 1;
-	//char **cmd = argv;
+	cmd = argv + 1;
 
-	error = hwt_create_process(sockpair, &argv[1], env, &pid);
+	error = hwt_create_process(sockpair, cmd, env, &pid);
 	if (error != 0)
 		return (error);
 
@@ -168,7 +164,7 @@ main(int argc, char **argv, char **env)
 		tc = &tcs[i];
 
 		if (i == 0)
-			tc->bufsize = 4096 * 8;
+			tc->bufsize = 16 * 1024 * 1024;
 
 		error = hwt_alloc_hwt(fd, i, tc);
 		printf("%s: error %d, cpuid %d hwt_id %d\n", __func__, error,

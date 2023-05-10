@@ -308,10 +308,10 @@ gen_trace_elem_print_lookup(const void *p_context,
 
 printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
 
-	if (elem->st_addr == 0)
-		return (OCSD_RESP_CONT);
-
 #if 0
+	if (elem->st_addr == 0)
+		return (0);
+
 	struct pmcstat_symbol *sym;
 	struct pmcstat_image *image;
 	sym = symbol_lookup(mdata, elem->st_addr, &image);
@@ -323,28 +323,24 @@ printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
 
 	switch (elem->elem_type) {
 	case OCSD_GEN_TRC_ELEM_UNKNOWN:
-		break;
 	case OCSD_GEN_TRC_ELEM_NO_SYNC:
-		printf("Waiting for sync.\n");
-		/* Trace off */
-		break;
 	case OCSD_GEN_TRC_ELEM_TRACE_ON:
-		break;
+	case OCSD_GEN_TRC_ELEM_EO_TRACE:
+	case OCSD_GEN_TRC_ELEM_PE_CONTEXT:
 	case OCSD_GEN_TRC_ELEM_INSTR_RANGE:
-		printf("range\n");
-		break;
+	case OCSD_GEN_TRC_ELEM_I_RANGE_NOPATH:
+	case OCSD_GEN_TRC_ELEM_ADDR_NACC:
+	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
 	case OCSD_GEN_TRC_ELEM_EXCEPTION:
 	case OCSD_GEN_TRC_ELEM_EXCEPTION_RET:
-	case OCSD_GEN_TRC_ELEM_PE_CONTEXT:
-	case OCSD_GEN_TRC_ELEM_EO_TRACE:
-	case OCSD_GEN_TRC_ELEM_ADDR_NACC:
 	case OCSD_GEN_TRC_ELEM_TIMESTAMP:
 	case OCSD_GEN_TRC_ELEM_CYCLE_COUNT:
-	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
 	case OCSD_GEN_TRC_ELEM_EVENT:
 	case OCSD_GEN_TRC_ELEM_SWTRACE:
+	case OCSD_GEN_TRC_ELEM_SYNC_MARKER:
+	case OCSD_GEN_TRC_ELEM_MEMTRANS:
+	case OCSD_GEN_TRC_ELEM_INSTRUMENTATION:
 	case OCSD_GEN_TRC_ELEM_CUSTOM:
-	default:
 		break;
 	};
 
