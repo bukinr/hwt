@@ -60,13 +60,13 @@ struct hwt_start {
 
 struct hwt_mmap_user_entry {
 	uintptr_t addr;
-	size_t size;
 	char fullpath[MAXPATHLEN];
+	size_t size;
 } __packed __aligned(16);
 
 struct hwt_mmap_get {
 	struct hwt_mmap_user_entry	*mmaps;
-	int				nentries;
+	int				*nentries;
 	int				hwt_id;
 	pid_t				pid;
 } __packed __aligned(16);

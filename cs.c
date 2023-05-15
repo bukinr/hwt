@@ -363,7 +363,7 @@ cs_init(struct trace_context *tc)
 		return (-1);
 	}
 
-	//cs_flags |= FLAG_FORMAT;
+	cs_flags |= FLAG_FORMAT;
 
 	error = create_decoder_etmv4(dcdtree_handle, tc);
 	if (error != OCSD_OK) {

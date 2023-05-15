@@ -1,3 +1,4 @@
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -194,8 +195,6 @@ main(int argc, char **argv, char **env)
 			return (error);
 	}
 
-	close(fd);
-
 	error = hwt_start_process(sockpair);
 	if (error != 0)
 		return (error);
@@ -203,11 +202,36 @@ main(int argc, char **argv, char **env)
 	printf("waiting proc to finish\n");
 	sleep(1);
 
+	struct hwt_mmap_user_entry mmaps[1024] __aligned(16);
+	struct hwt_mmap_get mmap_get;
+	int nentries;
+	int j;
+
+	nentries = 256;
+
+	for (i = 0; i < 4; i++) {
+		tc = &tcs[i];
+		mmap_get.pid = pid;
+		mmap_get.hwt_id = tc->hwt_id;
+		mmap_get.mmaps = mmaps;
+		mmap_get.nentries = &nentries;
+		error = ioctl(fd, HWT_IOC_MMAP_GET, &mmap_get);
+		printf("MMAP_GET cpuid %d error %d entires %d\n", i, error, nentries);
+		if (error != 0 || nentries == 0)
+                        continue;
+
+		for (j = 0; j < nentries; j++) {
+			printf("  lib #%d: path %s addr %lx size %lx\n", j, mmaps[j].fullpath, (unsigned long)mmaps[j].addr, mmaps[j].size);
+		}
+	}
+
+	close(fd);
+
 	tc = &tcs[0];
 	cs_init(tc);
 
 	printf("processing\n");
-	cs_process_chunk(tc);
+	//cs_process_chunk(tc);
 
 	return (0);
 }
