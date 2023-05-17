@@ -10,6 +10,33 @@
 #define max(A,B)                ((A) > (B) ? (A) : (B))
 
 void
+add_symbols(Elf *elf, Elf_Scn *scn, GElf_Shdr *sh)
+{
+	size_t nshsyms, nfuncsyms;
+	Elf_Data *data;
+	GElf_Sym sym;
+	int i;
+
+	printf("adding symbols\n");
+
+	if ((data = elf_getdata(scn, NULL)) == NULL)
+		return;
+
+	nshsyms = sh->sh_size / sh->sh_entsize;
+	nfuncsyms = 0;
+
+	for (i = 0; i < nshsyms; i++) {
+		if (gelf_getsym(data, i, &sym) != &sym)
+			return;
+
+		if (GELF_ST_TYPE(sym.st_info) == STT_FUNC)
+			nfuncsyms++;
+	}
+
+	printf("nfuncs %ju\n", nfuncsyms);
+}
+
+void
 find_libs(const char *elf_path)
 {
 	size_t sh_entsize, nph, nsh;
@@ -102,7 +129,7 @@ find_libs(const char *elf_path)
 		}
 
 		if (sh.sh_type == SHT_SYMTAB || sh.sh_type == SHT_DYNSYM)
-			printf("adding symbols\n");
+			add_symbols(elf, scn, &sh);
 	}
 
 	data = NULL;

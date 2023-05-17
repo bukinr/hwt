@@ -231,7 +231,7 @@ main(int argc, char **argv, char **env)
 	cs_init(tc);
 
 	printf("processing\n");
-	//cs_process_chunk(tc);
+	cs_process_chunk(tc);
 
 	return (0);
 }
