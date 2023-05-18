@@ -3,8 +3,8 @@ LIBS += libpmcstat/libpmcstat_string.o
 LIBS += libpmcstat/libpmcstat_symbol.o
 LIBS += libpmcstat/libpmcstat_process.o
 LIBS += /usr/lib/libc++.a
-LIBS += libopencsd.a 
 LIBS += /usr/lib/libelf.a
+LIBS += libopencsd.a
 
 all:
 	cc -c cs.c -o cs.o

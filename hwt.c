@@ -20,6 +20,9 @@
 
 extern char **environ;
 
+#include "libpmcstat/libpmcstat.h"
+struct pmcstat_image_hash_list pmcstat_image_hash[PMCSTAT_NHASH];
+
 static int
 hwt_create_process(int *sockpair, char **cmd, char **env, int *pid0)
 {
@@ -138,6 +141,9 @@ main(int argc, char **argv, char **env)
 	int i;
 	int sockpair[NSOCKPAIRFD];
 	int pid;
+
+	hwt_process_test();
+	return (0);
 
 	sprintf(filename, "/dev/hwt");
 
