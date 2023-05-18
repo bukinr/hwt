@@ -19,6 +19,7 @@
 #define	CHILDSOCKET		1
 
 extern char **environ;
+static struct trace_context tcs[4];
 
 #include "libpmcstat/libpmcstat.h"
 struct pmcstat_image_hash_list pmcstat_image_hash[PMCSTAT_NHASH];
@@ -133,7 +134,6 @@ main(int argc, char **argv, char **env)
 	struct hwt_attach a;
 	struct hwt_start s;
 	char filename[20];
-	struct trace_context tcs[4];
 	struct trace_context *tc;
 	char **cmd;
 	int error;
@@ -211,9 +211,14 @@ main(int argc, char **argv, char **env)
 
 	nentries = 256;
 
+	struct pmcstat_process *pp;
+	pp = hwt_process_test();
+	printf("%s: pp %#p\n", __func__, pp);
+
 	for (i = 0; i < 4; i++) {
 		tc = &tcs[i];
 		tc->cpu = i;
+		tc->pp = pp;
 		tc->mmaps = malloc(sizeof(struct hwt_mmap_user_entry) * 1024);
 		mmap_get.pid = pid;
 		mmap_get.hwt_id = tc->hwt_id;
@@ -233,8 +238,6 @@ main(int argc, char **argv, char **env)
 
 	tc = &tcs[0];
 	cs_init(tc);
-
-	tc->pp = hwt_process_test();
 
 	printf("processing\n");
 	cs_process_chunk(tc);

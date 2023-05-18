@@ -1,8 +1,10 @@
 struct trace_context {
+	struct pmcstat_process *pp;
+	struct hwt_mmap_user_entry *mmaps;
+	void *base;
+	int cpu;
 	int hwt_id;
 	int bufsize;
-	void *base;
-	struct hwt_mmap_user_entry *mmaps;
-	struct pmcstat_process *pp;
-	int cpu;
 };
+
+struct pmcstat_process * hwt_process_test(void);

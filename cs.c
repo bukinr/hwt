@@ -310,8 +310,14 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 	struct pmcstat_pcmap *map;
 	uint64_t newpc;
 
+	//printf("%s: tc %#p ip %lx\n", __func__, tc, ip);
+	//printf("%s: tc->pp %#p ip %lx\n", __func__, tc->pp, ip);
+	//ip -= 0x100000;
+	//ip -= 0x100000;
+
 	map = pmcstat_process_find_map(tc->pp, ip);
 	if (map != NULL) {
+		//printf("map found\n");
 		image = map->ppm_image;
 		newpc = ip - (map->ppm_lowpc +
 		    (image->pi_vaddr - image->pi_start));
@@ -324,8 +330,9 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 			    tc->cpu, newpc);
 
 		return (sym);
-        } else 
-		printf("cpu%d: 0x%lx map not found\n", tc->cpu, ip);
+	} else {
+		//printf("cpu%d: 0x%lx map not found\n", tc->cpu, ip);
+	}
 
         return (NULL);
 }
@@ -351,15 +358,18 @@ gen_trace_elem_print_lookup(const void *p_context,
 #endif
 
 #if 0
-	if (elem->st_addr)
-		printf("%lx\n", elem->st_addr);
 
 printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
 #endif
 
 #if 1
+	if (elem->st_addr == -1)
+		return (0);
+
 	if (elem->st_addr == 0)
 		return (0);
+
+	printf("%lx\n", elem->st_addr);
 
 	struct pmcstat_symbol *sym;
 	struct pmcstat_image *image;

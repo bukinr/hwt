@@ -95,7 +95,9 @@ struct pmcstat_process *
 hwt_process_create(pmcstat_interned_string path, struct pmcstat_args *args,
     struct pmc_plugins *plugins)
 {
+	struct pmcstat_stats pmcstat_stats;
 	struct pmcstat_process *pp;
+	uintptr_t entryaddr;
 
 	if ((pp = malloc(sizeof(*pp))) == NULL)
 		err(EX_OSERR, "ERROR: Cannot allocate pid descriptor");
@@ -107,10 +109,8 @@ hwt_process_create(pmcstat_interned_string path, struct pmcstat_args *args,
 
         TAILQ_INIT(&pp->pp_map);
 
-	uintptr_t entryaddr;
-	struct pmcstat_stats pmcstat_stats;
-
-	entryaddr = 0;
+	entryaddr = 0x10000;
+	entryaddr = 0x270000;
 
 	pmcstat_process_exec(pp, path, entryaddr, args, plugins,
 	    &pmcstat_stats);
@@ -163,8 +163,8 @@ hwt_process_test(void)
 	ip = 0x11264;
 
 	pp = hwt_process_create(path, &args, &plugins);
-	hwt_load_dynamic_libs(pp, path, &args, &plugins);
-	hwt_lookup(pp, ip);
+	//hwt_load_dynamic_libs(pp, path, &args, &plugins);
+	//hwt_lookup(pp, ip);
 
 	return (pp);
 }
