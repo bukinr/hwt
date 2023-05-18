@@ -142,9 +142,6 @@ main(int argc, char **argv, char **env)
 	int sockpair[NSOCKPAIRFD];
 	int pid;
 
-	hwt_process_test();
-	return (0);
-
 	sprintf(filename, "/dev/hwt");
 
 	cmd = argv + 1;
@@ -208,7 +205,6 @@ main(int argc, char **argv, char **env)
 	printf("waiting proc to finish\n");
 	sleep(1);
 
-	struct hwt_mmap_user_entry mmaps[1024] __aligned(16);
 	struct hwt_mmap_get mmap_get;
 	int nentries;
 	int j;
@@ -217,9 +213,11 @@ main(int argc, char **argv, char **env)
 
 	for (i = 0; i < 4; i++) {
 		tc = &tcs[i];
+		tc->cpu = i;
+		tc->mmaps = malloc(sizeof(struct hwt_mmap_user_entry) * 1024);
 		mmap_get.pid = pid;
 		mmap_get.hwt_id = tc->hwt_id;
-		mmap_get.mmaps = mmaps;
+		mmap_get.mmaps = tc->mmaps;
 		mmap_get.nentries = &nentries;
 		error = ioctl(fd, HWT_IOC_MMAP_GET, &mmap_get);
 		printf("MMAP_GET cpuid %d error %d entires %d\n", i, error, nentries);
@@ -227,7 +225,7 @@ main(int argc, char **argv, char **env)
                         continue;
 
 		for (j = 0; j < nentries; j++) {
-			printf("  lib #%d: path %s addr %lx size %lx\n", j, mmaps[j].fullpath, (unsigned long)mmaps[j].addr, mmaps[j].size);
+			printf("  lib #%d: path %s addr %lx size %lx\n", j, tc->mmaps[j].fullpath, (unsigned long)tc->mmaps[j].addr, tc->mmaps[j].size);
 		}
 	}
 
@@ -235,6 +233,8 @@ main(int argc, char **argv, char **env)
 
 	tc = &tcs[0];
 	cs_init(tc);
+
+	tc->pp = hwt_process_test();
 
 	printf("processing\n");
 	cs_process_chunk(tc);

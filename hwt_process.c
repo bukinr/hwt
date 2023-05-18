@@ -29,8 +29,7 @@ hwt_load_lib(struct pmcstat_process *pp, char *filepath,
 	image = pmcstat_image_from_path(image_path, 0, args, plugins);
 
 	return;
-
-	pmcstat_image_link(pp, image, 0); //START
+	//pmcstat_image_link(pp, image, 0); //START
 }
 
 void
@@ -146,7 +145,7 @@ hwt_lookup(struct pmcstat_process *pp, uintptr_t ip)
 	}
 }
 
-void
+struct pmcstat_process *
 hwt_process_test(void)
 {
 	struct pmcstat_process *pp;
@@ -157,10 +156,15 @@ hwt_process_test(void)
 
 	path = pmcstat_string_intern("/usr/bin/uname");
 
+	memset(&args, 0, sizeof(struct pmcstat_args));
+	memset(&plugins, 0, sizeof(struct pmc_plugins));
+
 	args.pa_fsroot = "/";
 	ip = 0x11264;
 
 	pp = hwt_process_create(path, &args, &plugins);
 	hwt_load_dynamic_libs(pp, path, &args, &plugins);
 	hwt_lookup(pp, ip);
+
+	return (pp);
 }

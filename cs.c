@@ -1,11 +1,26 @@
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/errno.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <signal.h>
+
 #include <stdio.h>
 #include <string.h>
 
 #include <opencsd/c_api/ocsd_c_api_types.h>
 #include <opencsd/c_api/opencsd_c_api.h>
 
+#include "hwt.h"
 #include "hwt_var.h"
 #include "cs.h"
+
+#include "libpmcstat/libpmcstat.h"
 
 #define	PMCTRACE_CS_DEBUG
 //#undef	PMCTRACE_CS_DEBUG
@@ -287,6 +302,35 @@ cs_process_chunk(struct trace_context *tc)
 	return (0);
 }
 
+static struct pmcstat_symbol *
+symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
+{
+	struct pmcstat_image *image;
+	struct pmcstat_symbol *sym;
+	struct pmcstat_pcmap *map;
+	uint64_t newpc;
+
+	map = pmcstat_process_find_map(tc->pp, ip);
+	if (map != NULL) {
+		image = map->ppm_image;
+		newpc = ip - (map->ppm_lowpc +
+		    (image->pi_vaddr - image->pi_start));
+
+		sym = pmcstat_symbol_search(image, newpc);
+		*img = image;
+
+		if (sym == NULL)
+			printf("cpu%d: symbol 0x%lx not found\n",
+			    tc->cpu, newpc);
+
+		return (sym);
+        } else 
+		printf("cpu%d: 0x%lx map not found\n", tc->cpu, ip);
+
+        return (NULL);
+}
+
+
 static ocsd_datapath_resp_t
 gen_trace_elem_print_lookup(const void *p_context,
     const ocsd_trc_index_t index_sop __unused,
@@ -306,17 +350,22 @@ gen_trace_elem_print_lookup(const void *p_context,
 	    elem->st_addr, elem->en_addr);
 #endif
 
-printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
-
 #if 0
+	if (elem->st_addr)
+		printf("%lx\n", elem->st_addr);
+
+printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
+#endif
+
+#if 1
 	if (elem->st_addr == 0)
 		return (0);
 
 	struct pmcstat_symbol *sym;
 	struct pmcstat_image *image;
-	sym = symbol_lookup(mdata, elem->st_addr, &image);
+	sym = symbol_lookup(tc, elem->st_addr, &image);
 	if (sym)
-		printf("cpu%d:  IP 0x%lx %s %s\n", mdata->cpu, elem->st_addr,
+		printf("cpu%d:  IP 0x%lx %s %s\n", tc->cpu, elem->st_addr,
 		    pmcstat_string_unintern(image->pi_name),
 		    pmcstat_string_unintern(sym->ps_name));
 #endif
@@ -363,7 +412,7 @@ cs_init(struct trace_context *tc)
 		return (-1);
 	}
 
-	cs_flags |= FLAG_FORMAT;
+	//cs_flags |= FLAG_FORMAT;
 
 	error = create_decoder_etmv4(dcdtree_handle, tc);
 	if (error != OCSD_OK) {
