@@ -5,9 +5,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define min(A,B)                ((A) < (B) ? (A) : (B))
 #define max(A,B)                ((A) > (B) ? (A) : (B))
+
+#include "hwt_image.h"
 
 void
 add_symbols(Elf *elf, Elf_Scn *scn, GElf_Shdr *sh)
@@ -15,6 +18,7 @@ add_symbols(Elf *elf, Elf_Scn *scn, GElf_Shdr *sh)
 	size_t nshsyms, nfuncsyms;
 	Elf_Data *data;
 	GElf_Sym sym;
+	char *fnname;
 	int i;
 
 	printf("adding symbols\n");
@@ -34,11 +38,35 @@ add_symbols(Elf *elf, Elf_Scn *scn, GElf_Shdr *sh)
 	}
 
 	printf("nfuncs %ju\n", nfuncsyms);
+
+	for (i = 0; i < nshsyms; i++) {
+
+		if (gelf_getsym(data, i, &sym) != &sym)
+			return;
+
+		if (GELF_ST_TYPE(sym.st_info) != STT_FUNC)
+			continue;
+
+		if (sym.st_shndx == STN_UNDEF)
+			continue;
+
+		fnname = elf_strptr(elf, sh->sh_link, sym.st_name);
+		if (fnname == NULL)
+			continue;
+
+#if defined(__aarch64__) || defined(__arm__)
+		sym.st_value &= ~1;
+#endif
+
+		printf("st_value 0x%lx fnname %s\n", sym.st_value, fnname);
+
+	}
 }
 
 void
-find_libs(const char *elf_path)
+hwt_load_elf(struct hwt_image *img, const char *elf_path)
 {
+	const char *elfbase;
 	size_t sh_entsize, nph, nsh;
 	GElf_Shdr shdr;
 	GElf_Phdr ph;
@@ -62,6 +90,7 @@ find_libs(const char *elf_path)
 	assert(elf_kind(elf) == ELF_K_ELF);
 
 	GElf_Ehdr eh;
+	const char *path;
 
 	if (gelf_getehdr(elf, &eh) != &eh) {
 		printf("could not find elf header\n");
@@ -88,15 +117,26 @@ find_libs(const char *elf_path)
 		}
 		switch (ph.p_type) {
 		case PT_DYNAMIC:
+			img->dynamic = 1;
+
 			printf("%s dyn\n", __func__);
 			break;
 		case PT_INTERP:
-			printf("%s interp\n", __func__);
+			elfbase = elf_rawfile(elf, NULL);
+			if (elfbase == NULL) {
+				printf("could not get interpreter\n");
+				exit(2);
+			}
+			path = elfbase + ph.p_offset;
+			img->rtld_path = strdup(path);
+
+			printf("%s interp: %s\n", __func__, path);
 			break;
 		case PT_LOAD:
 			if ((ph.p_flags & PF_X) != 0) {
 				printf("%s load\n", __func__);
 				printf("vaddr %lx\n", ph.p_vaddr & (-ph.p_align));
+				img->vaddr = ph.p_vaddr & (-ph.p_align);
 			}
 			break;
 		}
@@ -124,8 +164,8 @@ find_libs(const char *elf_path)
 		}
 
 		if (sh.sh_flags & SHF_EXECINSTR) {
-			printf("minva %lx\n", (unsigned long)min(minva, sh.sh_addr));
-			printf("maxva %lx\n", (unsigned long)max(maxva, sh.sh_addr + sh.sh_size));
+			minva = min(minva, sh.sh_addr);
+			maxva = max(maxva, sh.sh_addr + sh.sh_size);
 		}
 
 		if (sh.sh_type == SHT_SYMTAB || sh.sh_type == SHT_DYNSYM)
@@ -159,11 +199,14 @@ find_libs(const char *elf_path)
 int
 main(int argc, char **argv)
 {
+	struct hwt_image img;
 	char **cmd;
 
 	cmd = argv + 1;
 
-	find_libs(cmd[0]);
+	memset(&img, 0, sizeof(struct hwt_image));
+
+	hwt_load_elf(&img, cmd[0]);
 
 	return (0);
 }
