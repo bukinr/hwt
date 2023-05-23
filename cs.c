@@ -326,9 +326,12 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 		*img = image;
 
 		if (sym == NULL) {
-			//printf("cpu%d: symbol 0x%lx not found\n", tc->cpu, newpc);
-			printf("cpu%d:  IP 0x%lx %s not found\n", tc->cpu, ip,
+			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu, ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
+		} else {
+			printf("cpu%d:  IP 0x%lx (%lx) %s %s\n", tc->cpu, ip, newpc,
+			    pmcstat_string_unintern(image->pi_name),
+			    pmcstat_string_unintern(sym->ps_name));
 		}
 
 		return (sym);
@@ -376,6 +379,9 @@ printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
 	struct pmcstat_symbol *sym;
 	struct pmcstat_image *image;
 	sym = symbol_lookup(tc, elem->st_addr, &image);
+#endif
+
+#if 0
 	if (sym)
 		printf("cpu%d:  IP 0x%lx %s %s\n", tc->cpu, elem->st_addr,
 		    pmcstat_string_unintern(image->pi_name),

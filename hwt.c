@@ -259,6 +259,8 @@ main(int argc, char **argv, char **env)
 
 	close(fd);
 
+	sleep(1);
+
 	tc = &tcs[0];
 	cs_init(tc);
 

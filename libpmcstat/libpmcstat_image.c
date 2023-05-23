@@ -121,12 +121,14 @@ pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
 			continue;
 
 #if defined(__aarch64__) || defined(__arm__)
+#if 0
 		/* Ignore ARM mapping symbols. */
 		if (fnname[0] == '$' &&
 		    (fnname[1] == 'a' || fnname[1] == 't' ||
 		    fnname[1] == 'd' || fnname[1] == 'x' ||
 		    fnname[1] == 'c'))
 			continue;
+#endif
 
 		/*
 		 * Clear LSB from starting addresses for functions
@@ -435,8 +437,7 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 			case PT_LOAD:
 				if ((ph.p_flags & PF_X) != 0 &&
 				    first_exec_segment) {
-					image->pi_vaddr = ph.p_vaddr & (-ph.p_align);
-printf("%s: pi_vaddr %lx\n", __func__, image->pi_vaddr);
+					//image->pi_vaddr = ph.p_vaddr & (-ph.p_align);
 					first_exec_segment = false;
 				}
 				break;
