@@ -205,7 +205,7 @@ main(int argc, char **argv, char **env)
 	printf("waiting proc to finish\n");
 	sleep(1);
 
-	struct hwt_mmap_get mmap_get;
+	struct hwt_record_get record_get;
 	int nentries;
 	int j;
 
@@ -219,18 +219,21 @@ main(int argc, char **argv, char **env)
 		tc = &tcs[i];
 		tc->cpu = i;
 		tc->pp = pp;
-		tc->mmaps = malloc(sizeof(struct hwt_mmap_user_entry) * 1024);
-		mmap_get.pid = pid;
-		mmap_get.hwt_id = tc->hwt_id;
-		mmap_get.mmaps = tc->mmaps;
-		mmap_get.nentries = &nentries;
-		error = ioctl(fd, HWT_IOC_MMAP_GET, &mmap_get);
-		printf("MMAP_GET cpuid %d error %d entires %d\n", i, error, nentries);
+		tc->records = malloc(sizeof(struct hwt_record_user_entry) * 1024);
+		record_get.pid = pid;
+		record_get.hwt_id = tc->hwt_id;
+		record_get.records = tc->records;
+		record_get.nentries = &nentries;
+		error = ioctl(fd, HWT_IOC_RECORD_GET, &record_get);
+		printf("RECORD_GET cpuid %d error %d entires %d\n", i, error, nentries);
 		if (error != 0 || nentries == 0)
                         continue;
 
 		for (j = 0; j < nentries; j++) {
-			printf("  lib #%d: path %s addr %lx size %lx\n", j, tc->mmaps[j].fullpath, (unsigned long)tc->mmaps[j].addr, tc->mmaps[j].size);
+			printf("  lib #%d: path %s addr %lx size %lx\n", j,
+			    tc->records[j].fullpath,
+			    (unsigned long)tc->records[j].addr,
+			    tc->records[j].size);
 		}
 	}
 

@@ -431,6 +431,7 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 				if ((ph.p_flags & PF_X) != 0 &&
 				    first_exec_segment) {
 					image->pi_vaddr = ph.p_vaddr & (-ph.p_align);
+printf("%s: pi_vaddr %lx\n", __func__, image->pi_vaddr);
 					first_exec_segment = false;
 				}
 				break;

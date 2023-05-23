@@ -18,7 +18,7 @@
 
 #include "libpmcstat/libpmcstat.h"
 
-void
+static void
 hwt_load_lib(struct pmcstat_process *pp, char *filepath,
     struct pmcstat_args *args, struct pmc_plugins *plugins)
 {
@@ -32,7 +32,7 @@ hwt_load_lib(struct pmcstat_process *pp, char *filepath,
 	//pmcstat_image_link(pp, image, 0); //START
 }
 
-void
+static void
 hwt_load_dynamic_libs(struct pmcstat_process *pp, pmcstat_interned_string path,
     struct pmcstat_args *args, struct pmc_plugins *plugins)
 {
@@ -91,7 +91,7 @@ hwt_load_dynamic_libs(struct pmcstat_process *pp, pmcstat_interned_string path,
 	assert(close(fd) == 0);
 }
 
-struct pmcstat_process *
+static struct pmcstat_process *
 hwt_process_create(pmcstat_interned_string path, struct pmcstat_args *args,
     struct pmc_plugins *plugins)
 {
@@ -109,7 +109,6 @@ hwt_process_create(pmcstat_interned_string path, struct pmcstat_args *args,
 
         TAILQ_INIT(&pp->pp_map);
 
-	entryaddr = 0x10000;
 	entryaddr = 0x270000;
 
 	pmcstat_process_exec(pp, path, entryaddr, args, plugins,
@@ -163,7 +162,7 @@ hwt_process_test(void)
 	ip = 0x11264;
 
 	pp = hwt_process_create(path, &args, &plugins);
-	//hwt_load_dynamic_libs(pp, path, &args, &plugins);
+	hwt_load_dynamic_libs(pp, path, &args, &plugins);
 	//hwt_lookup(pp, ip);
 
 	return (pp);

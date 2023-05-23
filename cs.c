@@ -312,7 +312,7 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 
 	//printf("%s: tc %#p ip %lx\n", __func__, tc, ip);
 	//printf("%s: tc->pp %#p ip %lx\n", __func__, tc->pp, ip);
-	//ip -= 0x100000;
+
 	//ip -= 0x100000;
 
 	map = pmcstat_process_find_map(tc->pp, ip);
@@ -321,6 +321,7 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 		image = map->ppm_image;
 		newpc = ip - (map->ppm_lowpc +
 		    (image->pi_vaddr - image->pi_start));
+		printf("newpc %lx\n", newpc);
 
 		sym = pmcstat_symbol_search(image, newpc);
 		*img = image;
