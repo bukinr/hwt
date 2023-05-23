@@ -212,7 +212,18 @@ main(int argc, char **argv, char **env)
 	nentries = 256;
 
 	struct pmcstat_process *pp;
-	pp = hwt_process_test();
+	struct pmc_plugins plugins;
+	struct pmcstat_args args;
+	pmcstat_interned_string path;
+	struct pmcstat_image *image;
+
+	memset(&plugins, 0, sizeof(struct pmc_plugins));
+	memset(&args, 0, sizeof(struct pmcstat_args));
+	args.pa_fsroot = "/";
+
+	path = pmcstat_string_intern("/usr/bin/uname");
+	pp = hwt_process_create(path, &args, &plugins);
+
 	printf("%s: pp %#p\n", __func__, pp);
 
 	for (i = 0; i < 4; i++) {
@@ -234,6 +245,15 @@ main(int argc, char **argv, char **env)
 			    tc->records[j].fullpath,
 			    (unsigned long)tc->records[j].addr,
 			    tc->records[j].size);
+
+			path = pmcstat_string_intern(tc->records[j].fullpath);
+			if ((image = pmcstat_image_from_path(path, 0,
+			    &args, &plugins)) == NULL)
+				return (NULL);
+			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
+				pmcstat_image_determine_type(image, &args);
+
+			pmcstat_image_link(pp, image, (unsigned long)tc->records[j].addr);
 		}
 	}
 

@@ -91,7 +91,7 @@ hwt_load_dynamic_libs(struct pmcstat_process *pp, pmcstat_interned_string path,
 	assert(close(fd) == 0);
 }
 
-static struct pmcstat_process *
+struct pmcstat_process *
 hwt_process_create(pmcstat_interned_string path, struct pmcstat_args *args,
     struct pmc_plugins *plugins)
 {
@@ -108,6 +108,8 @@ hwt_process_create(pmcstat_interned_string path, struct pmcstat_args *args,
 #endif
 
         TAILQ_INIT(&pp->pp_map);
+
+	return (pp);
 
 	entryaddr = 0x270000;
 
@@ -151,17 +153,30 @@ hwt_process_test(void)
 	struct pmc_plugins plugins;
 	struct pmcstat_args args;
 	pmcstat_interned_string path;
+	struct pmcstat_image *image;
 	uintptr_t ip;
 
-	path = pmcstat_string_intern("/usr/bin/uname");
-
-	memset(&args, 0, sizeof(struct pmcstat_args));
 	memset(&plugins, 0, sizeof(struct pmc_plugins));
-
+	memset(&args, 0, sizeof(struct pmcstat_args));
 	args.pa_fsroot = "/";
+
+	path = pmcstat_string_intern("/usr/bin/uname");
+	pp = hwt_process_create(path, &args, &plugins);
+
+	return (pp);
+
+	if ((image = pmcstat_image_from_path(path, 0,
+	    &args, &plugins)) == NULL)
+		return (NULL);
+	if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
+		pmcstat_image_determine_type(image, &args);
+
+	pmcstat_image_link(pp, image, 0x111264);
+
+	return (pp);
+
 	ip = 0x11264;
 
-	pp = hwt_process_create(path, &args, &plugins);
 	hwt_load_dynamic_libs(pp, path, &args, &plugins);
 	//hwt_lookup(pp, ip);
 

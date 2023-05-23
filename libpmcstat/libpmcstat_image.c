@@ -229,6 +229,11 @@ pmcstat_image_link(struct pmcstat_process *pp, struct pmcstat_image *image,
 	pcmnew->ppm_highpc = image->pi_end + offset;
 	pcmnew->ppm_image  = image;
 
+	offset = start - image->pi_vaddr;
+	pcmnew->ppm_lowpc  = start;
+	pcmnew->ppm_highpc = start + (image->pi_end - image->pi_start);
+	pcmnew->ppm_image  = image;
+
 	assert(pcmnew->ppm_lowpc < pcmnew->ppm_highpc);
 
 	/* Overlapped mmap()'s are assumed to never occur. */

@@ -312,7 +312,6 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 
 	//printf("%s: tc %#p ip %lx\n", __func__, tc, ip);
 	//printf("%s: tc->pp %#p ip %lx\n", __func__, tc->pp, ip);
-
 	//ip -= 0x100000;
 
 	map = pmcstat_process_find_map(tc->pp, ip);
@@ -321,14 +320,16 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 		image = map->ppm_image;
 		newpc = ip - (map->ppm_lowpc +
 		    (image->pi_vaddr - image->pi_start));
-		printf("newpc %lx\n", newpc);
+		//printf("newpc %lx\n", newpc);
 
 		sym = pmcstat_symbol_search(image, newpc);
 		*img = image;
 
-		if (sym == NULL)
-			printf("cpu%d: symbol 0x%lx not found\n",
-			    tc->cpu, newpc);
+		if (sym == NULL) {
+			//printf("cpu%d: symbol 0x%lx not found\n", tc->cpu, newpc);
+			printf("cpu%d:  IP 0x%lx %s not found\n", tc->cpu, ip,
+			    pmcstat_string_unintern(image->pi_name));
+		}
 
 		return (sym);
 	} else {
@@ -370,7 +371,7 @@ printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
 	if (elem->st_addr == 0)
 		return (0);
 
-	printf("%lx\n", elem->st_addr);
+	//printf("%lx\n", elem->st_addr);
 
 	struct pmcstat_symbol *sym;
 	struct pmcstat_image *image;
