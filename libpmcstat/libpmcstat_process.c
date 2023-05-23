@@ -86,12 +86,7 @@ pmcstat_process_elf_exec(struct pmcstat_process *pp,
 	    image->pi_type == PMCSTAT_IMAGE_ELF64);
 
 	/* Create a map entry for the base executable. */
-printf("pi vaddr %lx\n", image->pi_vaddr);
-printf("pi start %lx\n", image->pi_start);
-printf("pi end %lx\n", image->pi_end);
-
 	pmcstat_image_link(pp, image, image->pi_vaddr);
-	//pmcstat_image_link(pp, image, image->pi_vaddr + 0x100000);
 
 	/*
 	 * For dynamically linked executables we need to determine
@@ -142,7 +137,6 @@ printf("pi end %lx\n", image->pi_end);
 
 		libstart = entryaddr - rtldimage->pi_entry;
 		pmcstat_image_link(pp, rtldimage, libstart);
-		//pmcstat_image_link(pp, rtldimage, rtldimage->pi_vaddr + 0x270000);
 	}
 }
 
