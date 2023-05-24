@@ -121,14 +121,12 @@ pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
 			continue;
 
 #if defined(__aarch64__) || defined(__arm__)
-#if 0
 		/* Ignore ARM mapping symbols. */
 		if (fnname[0] == '$' &&
 		    (fnname[1] == 'a' || fnname[1] == 't' ||
 		    fnname[1] == 'd' || fnname[1] == 'x' ||
 		    fnname[1] == 'c'))
 			continue;
-#endif
 
 		/*
 		 * Clear LSB from starting addresses for functions
@@ -229,11 +227,6 @@ pmcstat_image_link(struct pmcstat_process *pp, struct pmcstat_image *image,
 	offset = start - image->pi_vaddr;
 	pcmnew->ppm_lowpc  = image->pi_start + offset;
 	pcmnew->ppm_highpc = image->pi_end + offset;
-	pcmnew->ppm_image  = image;
-
-	offset = start - image->pi_vaddr;
-	pcmnew->ppm_lowpc  = start;
-	pcmnew->ppm_highpc = start + (image->pi_end - image->pi_start);
 	pcmnew->ppm_image  = image;
 
 	assert(pcmnew->ppm_lowpc < pcmnew->ppm_highpc);
@@ -437,7 +430,7 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 			case PT_LOAD:
 				if ((ph.p_flags & PF_X) != 0 &&
 				    first_exec_segment) {
-					//image->pi_vaddr = ph.p_vaddr & (-ph.p_align);
+					image->pi_vaddr = ph.p_vaddr & (-ph.p_align);
 					first_exec_segment = false;
 				}
 				break;

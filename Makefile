@@ -1,7 +1,7 @@
 LIBS += libpmcstat/libpmcstat_image.o
 LIBS += libpmcstat/libpmcstat_string.o
 LIBS += libpmcstat/libpmcstat_symbol.o
-LIBS += libpmcstat/libpmcstat_process.o
+# LIBS += libpmcstat/libpmcstat_process.o
 LIBS += /usr/lib/libc++.a
 LIBS += /usr/lib/libelf.a
 LIBS += libopencsd.a

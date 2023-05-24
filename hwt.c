@@ -253,7 +253,12 @@ main(int argc, char **argv, char **env)
 			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
 				pmcstat_image_determine_type(image, &args);
 
-			pmcstat_image_link(pp, image, (unsigned long)tc->records[j].addr);
+			unsigned long addr;
+			addr = (unsigned long)tc->records[j].addr & ~1;
+			addr -= (image->pi_start - image->pi_vaddr);
+			pmcstat_image_link(pp, image, addr);
+			printf("image pi_vaddr %lx pi_start %lx pi_entry %lx\n",
+			    image->pi_vaddr, image->pi_start, image->pi_entry);
 		}
 	}
 

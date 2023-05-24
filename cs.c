@@ -302,6 +302,21 @@ cs_process_chunk(struct trace_context *tc)
 	return (0);
 }
 
+struct pmcstat_pcmap *
+pmcstat_process_find_map(struct pmcstat_process *p, uintfptr_t pc)
+{
+	struct pmcstat_pcmap *ppm;
+
+	TAILQ_FOREACH(ppm, &p->pp_map, ppm_next) {
+		if (pc >= ppm->ppm_lowpc && pc < ppm->ppm_highpc)
+			return (ppm);
+		if (pc < ppm->ppm_lowpc)
+			return (NULL);
+	}
+
+	return (NULL);
+}
+
 static struct pmcstat_symbol *
 symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 {
@@ -320,11 +335,14 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 		image = map->ppm_image;
 		newpc = ip - (map->ppm_lowpc +
 		    (image->pi_vaddr - image->pi_start));
-		//printf("newpc %lx\n", newpc);
+		//printf("ip %lx newpc %lx lowpc %lx start %lx\n", ip, newpc, map->ppm_lowpc, image->pi_start);
 
 		sym = pmcstat_symbol_search(image, newpc);
 		*img = image;
 
+		newpc += image->pi_vaddr;
+
+#if 1
 		if (sym == NULL) {
 			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu, ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
@@ -333,6 +351,13 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 			    pmcstat_string_unintern(image->pi_name),
 			    pmcstat_string_unintern(sym->ps_name));
 		}
+#else
+		if (sym) {
+			printf("cpu%d:  IP 0x%lx %s %s\n", tc->cpu, ip,
+			    pmcstat_string_unintern(image->pi_name),
+			    pmcstat_string_unintern(sym->ps_name));
+		}
+#endif
 
 		return (sym);
 	} else {
