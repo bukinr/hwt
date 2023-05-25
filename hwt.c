@@ -88,18 +88,17 @@ hwt_start_process(int *sockpair)
 }
 
 static int
-hwt_alloc_hwt(int fd, int cpuid, struct trace_context *tc)
+hwt_alloc_ctx(int fd, struct trace_context *tc)
 {
 	struct hwt_alloc al;
 	int error;
 
-	al.cpu_id = cpuid;
+	al.cpu_id = tc->cpu_id;
+	al.pid = tc->pid;
 
 	error = ioctl(fd, HWT_IOC_ALLOC, &al);
 	if (error != 0)
 		return (error);
-
-	tc->hwt_id = *al.hwt_id;
 
 	return (0);
 }
@@ -110,7 +109,7 @@ hwt_map_memory(struct trace_context *tc)
 	char filename[32];
 	int fd;
 
-	sprintf(filename, "/dev/hwt_ctx_%d", tc->hwt_id);
+	sprintf(filename, "/dev/hwt_%d%d", tc->cpu_id, tc->pid);
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
@@ -132,7 +131,6 @@ hwt_map_memory(struct trace_context *tc)
 int
 main(int argc, char **argv, char **env)
 {
-	struct hwt_attach a;
 	struct hwt_start s;
 	char filename[20];
 	struct trace_context *tc;
@@ -171,16 +169,12 @@ main(int argc, char **argv, char **env)
 		if (i == 0)
 			tc->bufsize = 16 * 1024 * 1024;
 
-		error = hwt_alloc_hwt(fd, i, tc);
-		printf("%s: error %d, cpuid %d hwt_id %d\n", __func__, error,
-		    i, tc->hwt_id);
-		if (error)
-			return (error);
+		tc->cpu_id = i;
+		tc->pid = pid;
 
-		a.pid = pid;
-		a.hwt_id = tc->hwt_id;
-		error = ioctl(fd, HWT_IOC_ATTACH, &a);
-		printf("%s: ioctl attach returned %d\n", __func__, error);
+		error = hwt_alloc_ctx(fd, tc);
+		printf("%s: alloc_ctx cpu_id %d pid %d error %d\n",
+		    __func__, tc->cpu_id, tc->pid, error);
 		if (error)
 			return (error);
 
@@ -192,7 +186,8 @@ main(int argc, char **argv, char **env)
 			}
 		}
 
-		s.hwt_id = tc->hwt_id;
+		s.cpu_id = tc->cpu_id;
+		s.pid = tc->pid;
 		error = ioctl(fd, HWT_IOC_START, &s);
 		printf("%s: ioctl start returned %d\n", __func__, error);
 		if (error)
@@ -229,11 +224,11 @@ main(int argc, char **argv, char **env)
 
 	for (i = 0; i < 4; i++) {
 		tc = &tcs[i];
-		tc->cpu = i;
+		tc->cpu_id = i;
 		tc->pp = pp;
 		tc->records = malloc(sizeof(struct hwt_record_user_entry) * 1024);
 		record_get.pid = pid;
-		record_get.hwt_id = tc->hwt_id;
+		record_get.cpu_id = tc->cpu_id;
 		record_get.records = tc->records;
 		record_get.nentries = &nentries;
 		error = ioctl(fd, HWT_IOC_RECORD_GET, &record_get);

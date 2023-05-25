@@ -338,11 +338,11 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 
 		if (sym) {
 			offset = newpc - (sym->ps_start + image->pi_vaddr);
-			printf("cpu%d:  IP 0x%lx (%lx) %s %s+0x%lx\n", tc->cpu, ip, newpc,
+			printf("cpu%d:  IP 0x%lx (%lx) %s %s+0x%lx\n", tc->cpu_id, ip, newpc,
 			    pmcstat_string_unintern(image->pi_name),
 			    pmcstat_string_unintern(sym->ps_name), offset);
 		} else
-			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu, ip, newpc,
+			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu_id, ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
 
 		return (sym);
