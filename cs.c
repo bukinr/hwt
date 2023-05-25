@@ -323,50 +323,31 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 	struct pmcstat_image *image;
 	struct pmcstat_symbol *sym;
 	struct pmcstat_pcmap *map;
+	unsigned long offset;
 	uint64_t newpc;
-
-	//printf("%s: tc %#p ip %lx\n", __func__, tc, ip);
-	//printf("%s: tc->pp %#p ip %lx\n", __func__, tc->pp, ip);
-	//ip -= 0x100000;
 
 	map = pmcstat_process_find_map(tc->pp, ip);
 	if (map != NULL) {
-		//printf("map found\n");
 		image = map->ppm_image;
 		newpc = ip - ((unsigned long)map->ppm_lowpc +
 		    (image->pi_vaddr - image->pi_start));
-		//printf("ip %lx newpc %lx lowpc %lx start %lx\n", ip, newpc, map->ppm_lowpc, image->pi_start);
-
 		sym = pmcstat_symbol_search(image, newpc);
 		*img = image;
 
 		newpc += image->pi_vaddr;
 
-
-#if 1
-		unsigned long offset;
-
-		if (sym == NULL) {
-			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu, ip, newpc,
-			    pmcstat_string_unintern(image->pi_name));
-		} else {
+		if (sym) {
 			offset = newpc - (sym->ps_start + image->pi_vaddr);
 			printf("cpu%d:  IP 0x%lx (%lx) %s %s+0x%lx\n", tc->cpu, ip, newpc,
 			    pmcstat_string_unintern(image->pi_name),
 			    pmcstat_string_unintern(sym->ps_name), offset);
-		}
-#else
-		if (sym) {
-			printf("cpu%d:  IP 0x%lx %s %s\n", tc->cpu, ip,
-			    pmcstat_string_unintern(image->pi_name),
-			    pmcstat_string_unintern(sym->ps_name));
-		}
-#endif
+		} else
+			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu, ip, newpc,
+			    pmcstat_string_unintern(image->pi_name));
 
 		return (sym);
-	} else {
-		//printf("cpu%d: 0x%lx map not found\n", tc->cpu, ip);
-	}
+	} else
+		*img = NULL;
 
         return (NULL);
 }
@@ -378,6 +359,7 @@ gen_trace_elem_print_lookup(const void *p_context,
     const uint8_t trc_chan_id __unused,
     const ocsd_generic_trace_elem *elem)
 {
+	struct pmcstat_image *image;
 	struct trace_context *tc;
 	ocsd_datapath_resp_t resp;
 
@@ -392,29 +374,11 @@ gen_trace_elem_print_lookup(const void *p_context,
 #endif
 
 #if 0
-
-printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
-#endif
-
-#if 1
 	if (elem->st_addr == -1)
 		return (0);
 
 	if (elem->st_addr == 0)
 		return (0);
-
-	//printf("%lx\n", elem->st_addr);
-
-	struct pmcstat_symbol *sym;
-	struct pmcstat_image *image;
-	sym = symbol_lookup(tc, elem->st_addr, &image);
-#endif
-
-#if 0
-	if (sym)
-		printf("cpu%d:  IP 0x%lx %s %s\n", tc->cpu, elem->st_addr,
-		    pmcstat_string_unintern(image->pi_name),
-		    pmcstat_string_unintern(sym->ps_name));
 #endif
 
 	switch (elem->elem_type) {
@@ -422,7 +386,10 @@ printf("Idx: %d, IP 0x%lx\n", index_sop, elem->st_addr);
 	case OCSD_GEN_TRC_ELEM_NO_SYNC:
 	case OCSD_GEN_TRC_ELEM_TRACE_ON:
 	case OCSD_GEN_TRC_ELEM_EO_TRACE:
+		break;
 	case OCSD_GEN_TRC_ELEM_PE_CONTEXT:
+		symbol_lookup(tc, elem->st_addr, &image);
+		break;
 	case OCSD_GEN_TRC_ELEM_INSTR_RANGE:
 	case OCSD_GEN_TRC_ELEM_I_RANGE_NOPATH:
 	case OCSD_GEN_TRC_ELEM_ADDR_NACC:
