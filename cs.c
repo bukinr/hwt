@@ -342,14 +342,18 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 
 		newpc += image->pi_vaddr;
 
+
 #if 1
+		unsigned long offset;
+
 		if (sym == NULL) {
 			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu, ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
 		} else {
-			printf("cpu%d:  IP 0x%lx (%lx) %s %s\n", tc->cpu, ip, newpc,
+			offset = newpc - (sym->ps_start + image->pi_vaddr);
+			printf("cpu%d:  IP 0x%lx (%lx) %s %s+0x%lx\n", tc->cpu, ip, newpc,
 			    pmcstat_string_unintern(image->pi_name),
-			    pmcstat_string_unintern(sym->ps_name));
+			    pmcstat_string_unintern(sym->ps_name), offset);
 		}
 #else
 		if (sym) {
