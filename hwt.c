@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 
 #include "hwt.h"
 #include "hwt_var.h"
@@ -249,7 +250,8 @@ main(int argc, char **argv, char **env)
 			path = pmcstat_string_intern(tc->records[j].fullpath);
 			if ((image = pmcstat_image_from_path(path, 0,
 			    &args, &plugins)) == NULL)
-				return (NULL);
+				return (-1);
+
 			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
 				pmcstat_image_determine_type(image, &args);
 
@@ -258,7 +260,9 @@ main(int argc, char **argv, char **env)
 			addr -= (image->pi_start - image->pi_vaddr);
 			pmcstat_image_link(pp, image, addr);
 			printf("image pi_vaddr %lx pi_start %lx pi_entry %lx\n",
-			    image->pi_vaddr, image->pi_start, image->pi_entry);
+			    (unsigned long)image->pi_vaddr,
+			    (unsigned long)image->pi_start,
+			    (unsigned long)image->pi_entry);
 		}
 	}
 

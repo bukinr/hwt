@@ -333,7 +333,7 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 	if (map != NULL) {
 		//printf("map found\n");
 		image = map->ppm_image;
-		newpc = ip - (map->ppm_lowpc +
+		newpc = ip - ((unsigned long)map->ppm_lowpc +
 		    (image->pi_vaddr - image->pi_start));
 		//printf("ip %lx newpc %lx lowpc %lx start %lx\n", ip, newpc, map->ppm_lowpc, image->pi_start);
 
@@ -378,10 +378,10 @@ gen_trace_elem_print_lookup(const void *p_context,
     const uint8_t trc_chan_id __unused,
     const ocsd_generic_trace_elem *elem)
 {
-	const struct trace_context *tc;
+	struct trace_context *tc;
 	ocsd_datapath_resp_t resp;
 
-	tc = (const struct trace_context *)p_context;
+	tc = (struct trace_context *)p_context;
 
 	resp = OCSD_RESP_CONT;
 

@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sysexits.h>
+#include <string.h>
 
 #include "hwt.h"
 #include "hwt_var.h"
@@ -100,7 +101,7 @@ hwt_process_create(pmcstat_interned_string path, struct pmcstat_args *args,
 	uintptr_t entryaddr;
 
 	if ((pp = malloc(sizeof(*pp))) == NULL)
-		err(EX_OSERR, "ERROR: Cannot allocate pid descriptor");
+		return (NULL);
 
 #if 0
 	pp->pp_pid = pid;
@@ -132,7 +133,7 @@ hwt_lookup(struct pmcstat_process *pp, uintptr_t ip)
 	map = pmcstat_process_find_map(pp, ip);
 	if (map != NULL) {
 		image = map->ppm_image;
-		newpc = ip - (map->ppm_lowpc +
+		newpc = ip - ((unsigned long)map->ppm_lowpc +
 		    (image->pi_vaddr - image->pi_start));
 
 		sym = pmcstat_symbol_search(image, newpc);
