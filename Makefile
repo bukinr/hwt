@@ -19,4 +19,4 @@ all:
 	cc ${LIBS} ${OBJS} -o ${.CURDIR}/hwt
 
 clean:
-	rm -rf obj
+	rm -rf obj/*
