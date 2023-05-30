@@ -81,15 +81,12 @@ process_records(int fd, int pid)
 	int j;
 	int i;
 
-	nentries = 256;
-
 	memset(&plugins, 0, sizeof(struct pmc_plugins));
 	memset(&args, 0, sizeof(struct pmcstat_args));
 	args.pa_fsroot = "/";
+	nentries = 256;
 
 	pp = hwt_process_alloc();
-
-	printf("%s: pp %#p\n", __func__, pp);
 
 	for (i = 0; i < 4; i++) {
 		tc = &tcs[i];
@@ -215,12 +212,10 @@ main(int argc, char **argv, char **env)
 
 	close(fd);
 
-	sleep(1);
+	printf("processing\n");
 
 	tc = &tcs[0];
 	cs_init(tc);
-
-	printf("processing\n");
 	cs_process_chunk(tc);
 
 	return (0);
