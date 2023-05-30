@@ -21,4 +21,5 @@ all:
 	cc ${LIBS} ${OBJS} -o ${.CURDIR}/hwt
 
 clean:
-	rm -rf obj/* hwt
+	rm -f ${.CURDIR}/obj/*
+	rm -f ${.CURDIR}/hwt
