@@ -25,7 +25,7 @@ static struct trace_context tcs[4];
 #include "libpmcstat/libpmcstat.h"
 
 static int
-hwt_alloc_ctx(int fd, struct trace_context *tc)
+hwt_ctx_alloc(int fd, struct trace_context *tc)
 {
 	struct hwt_alloc al;
 	int error;
@@ -112,11 +112,12 @@ main(int argc, char **argv, char **env)
 		tc->cpu_id = i;
 		tc->pid = pid;
 
-		error = hwt_alloc_ctx(fd, tc);
-		printf("%s: alloc_ctx cpu_id %d pid %d error %d\n",
-		    __func__, tc->cpu_id, tc->pid, error);
-		if (error)
+		error = hwt_ctx_alloc(fd, tc);
+		if (error) {
+			printf("%s: failed to alloc ctx, cpu_id %d pid %d error %d\n",
+			    __func__, tc->cpu_id, tc->pid, error);
 			return (error);
+		}
 
 		if (i == 0) {
 			error = hwt_map_memory(tc);
@@ -129,9 +130,10 @@ main(int argc, char **argv, char **env)
 		s.cpu_id = tc->cpu_id;
 		s.pid = tc->pid;
 		error = ioctl(fd, HWT_IOC_START, &s);
-		printf("%s: ioctl start returned %d\n", __func__, error);
-		if (error)
+		if (error) {
+			printf("%s: failed to start tracing, error %d\n", __func__, error);
 			return (error);
+		}
 	}
 
 	error = hwt_start_process(sockpair);
@@ -139,6 +141,7 @@ main(int argc, char **argv, char **env)
 		return (error);
 
 	printf("waiting proc to finish\n");
+
 	sleep(1);
 
 	struct hwt_record_get record_get;
