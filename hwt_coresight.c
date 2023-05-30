@@ -450,7 +450,6 @@ cs_init(struct trace_context *tc)
 	int error;
 
 	ocsd_def_errlog_init(OCSD_ERR_SEV_INFO, 1);
-	//ocsd_def_errlog_init(0, 0);
 
 	dcdtree_handle = ocsd_create_dcd_tree(OCSD_TRC_SRC_FRAME_FORMATTED,
 	    OCSD_DFRMTR_FRAME_MEM_ALIGN);
