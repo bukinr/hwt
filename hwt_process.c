@@ -50,7 +50,7 @@
 #include "libpmcstat/libpmcstat.h"
 
 int
-hwt_start_process(int *sockpair)
+hwt_process_start(int *sockpair)
 {
 	int error;
 
@@ -62,7 +62,7 @@ hwt_start_process(int *sockpair)
 }
 
 int
-hwt_create_process(int *sockpair, char **cmd, char **env, int *pid0)
+hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0)
 {
 	char token;
 	pid_t pid;

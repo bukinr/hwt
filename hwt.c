@@ -99,9 +99,8 @@ int
 main(int argc, char **argv, char **env)
 {
 	struct pmcstat_process *pp;
-	struct hwt_start s;
-	char filename[20];
 	struct trace_context *tc;
+	struct hwt_start s;
 	char **cmd;
 	int error;
 	int fd;
@@ -109,13 +108,11 @@ main(int argc, char **argv, char **env)
 	int sockpair[NSOCKPAIRFD];
 	int pid;
 
-	sprintf(filename, "/dev/hwt");
-
 	cmd = argv + 1;
 
 	printf("cmd is %s\n", *cmd);
 
-	error = hwt_create_process(sockpair, cmd, env, &pid);
+	error = hwt_process_create(sockpair, cmd, env, &pid);
 	if (error != 0)
 		return (error);
 
@@ -128,9 +125,9 @@ main(int argc, char **argv, char **env)
 	return (0);
 #endif
 
-	fd = open(filename, O_RDWR);
+	fd = open("/dev/hwt", O_RDWR);
 	if (fd < 0) {
-		printf("Can't open %s\n", filename);
+		printf("Can't open /dev/hwt\n");
 		return (-1);
 	}
 
@@ -170,7 +167,7 @@ main(int argc, char **argv, char **env)
 		}
 	}
 
-	error = hwt_start_process(sockpair);
+	error = hwt_process_start(sockpair);
 	if (error != 0)
 		return (error);
 
@@ -180,7 +177,7 @@ main(int argc, char **argv, char **env)
 
 	for (i = 0; i < 4; i++) {
 		tc = &tcs[i];
-		process_records(tc);
+		hwt_record_fetch(tc);
 	}
 
 	close(fd);

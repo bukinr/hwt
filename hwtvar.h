@@ -43,8 +43,8 @@ struct trace_context {
 };
 
 struct pmcstat_process *hwt_process_alloc(void);
-int hwt_create_process(int *sockpair, char **cmd, char **env, int *pid0);
-int hwt_start_process(int *sockpair);
-int process_records(struct trace_context *tc);
+int hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0);
+int hwt_process_start(int *sockpair);
+int hwt_record_fetch(struct trace_context *tc);
 
 #endif /* !_HWTVAR_H_ */

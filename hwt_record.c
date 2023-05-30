@@ -48,7 +48,7 @@
 #include "libpmcstat/libpmcstat.h"
 
 int
-process_records(struct trace_context *tc)
+hwt_record_fetch(struct trace_context *tc)
 {
 	pmcstat_interned_string path;
 	struct pmcstat_image *image;
