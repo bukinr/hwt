@@ -27,5 +27,10 @@
  * SUCH DAMAGE.
  */
 
+#ifndef	_CS_H_
+#define	_CS_H_
+
 int cs_init(struct trace_context *tc);
 int cs_process_chunk(struct trace_context *tc);
+
+#endif /* !_CS_H_ */

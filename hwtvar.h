@@ -29,6 +29,9 @@
 
 #include "libpmcstat/libpmcstat.h"
 
+#ifndef	_HWTVAR_H_
+#define	_HWTVAR_H_
+
 struct trace_context {
 	struct pmcstat_process *pp;
 	struct hwt_record_user_entry *records;
@@ -41,3 +44,5 @@ struct trace_context {
 struct pmcstat_process *hwt_process_alloc(void);
 int hwt_create_process(int *sockpair, char **cmd, char **env, int *pid0);
 int hwt_start_process(int *sockpair);
+
+#endif /* !_HWTVAR_H_ */
