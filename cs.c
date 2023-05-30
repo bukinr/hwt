@@ -373,13 +373,15 @@ gen_trace_elem_print_lookup(const void *p_context,
 	    elem->st_addr, elem->en_addr);
 #endif
 
-#if 0
+#if 1
 	if (elem->st_addr == -1)
-		return (0);
+		return (resp);
 
 	if (elem->st_addr == 0)
-		return (0);
+		return (resp);
 #endif
+
+	symbol_lookup(tc, elem->st_addr, &image);
 
 	switch (elem->elem_type) {
 	case OCSD_GEN_TRC_ELEM_UNKNOWN:
@@ -388,7 +390,6 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_EO_TRACE:
 		break;
 	case OCSD_GEN_TRC_ELEM_PE_CONTEXT:
-		symbol_lookup(tc, elem->st_addr, &image);
 		break;
 	case OCSD_GEN_TRC_ELEM_INSTR_RANGE:
 	case OCSD_GEN_TRC_ELEM_I_RANGE_NOPATH:

@@ -145,6 +145,8 @@ main(int argc, char **argv, char **env)
 
 	cmd = argv + 1;
 
+	printf("cmd is %s\n", *cmd);
+
 	error = hwt_create_process(sockpair, cmd, env, &pid);
 	if (error != 0)
 		return (error);
@@ -207,6 +209,7 @@ main(int argc, char **argv, char **env)
 
 	nentries = 256;
 
+	unsigned long addr;
 	struct pmcstat_process *pp;
 	struct pmc_plugins plugins;
 	struct pmcstat_args args;
@@ -217,7 +220,7 @@ main(int argc, char **argv, char **env)
 	memset(&args, 0, sizeof(struct pmcstat_args));
 	args.pa_fsroot = "/";
 
-	path = pmcstat_string_intern("/usr/bin/uname");
+	path = pmcstat_string_intern(*cmd);
 	pp = hwt_process_create(path, &args, &plugins);
 
 	printf("%s: pp %#p\n", __func__, pp);
@@ -250,7 +253,6 @@ main(int argc, char **argv, char **env)
 			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
 				pmcstat_image_determine_type(image, &args);
 
-			unsigned long addr;
 			addr = (unsigned long)tc->records[j].addr & ~1;
 			addr -= (image->pi_start - image->pi_vaddr);
 			pmcstat_image_link(pp, image, addr);

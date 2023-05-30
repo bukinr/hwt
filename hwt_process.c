@@ -148,7 +148,7 @@ hwt_lookup(struct pmcstat_process *pp, uintptr_t ip)
 }
 
 struct pmcstat_process *
-hwt_process_test(void)
+hwt_process_test(char *cmd)
 {
 	struct pmcstat_process *pp;
 	struct pmc_plugins plugins;
@@ -161,7 +161,7 @@ hwt_process_test(void)
 	memset(&args, 0, sizeof(struct pmcstat_args));
 	args.pa_fsroot = "/";
 
-	path = pmcstat_string_intern("/usr/bin/uname");
+	path = pmcstat_string_intern(cmd);
 	pp = hwt_process_create(path, &args, &plugins);
 
 	return (pp);
