@@ -225,8 +225,8 @@ pmcstat_image_link(struct pmcstat_process *pp, struct pmcstat_image *image,
 	 */
 
 	offset = start - image->pi_vaddr;
-	pcmnew->ppm_lowpc  = image->pi_start + offset;
-	pcmnew->ppm_highpc = image->pi_end + offset;
+	pcmnew->ppm_lowpc  = (unsigned long)image->pi_start + (unsigned long)offset;
+	pcmnew->ppm_highpc = (unsigned long)image->pi_end + (unsigned long)offset;
 	pcmnew->ppm_image  = image;
 
 	assert(pcmnew->ppm_lowpc < pcmnew->ppm_highpc);

@@ -99,9 +99,9 @@ pmcstat_symbol_search_by_name(struct pmcstat_process *pp,
 	if (!found)
 		return (NULL);
 
-	*addr_start = (image->pi_vaddr - image->pi_start +
+	*addr_start = ((unsigned long)image->pi_vaddr - (unsigned long)image->pi_start +
 	    pcm->ppm_lowpc + sym->ps_start);
-	*addr_end = (image->pi_vaddr - image->pi_start +
+	*addr_end = ((unsigned long)image->pi_vaddr - (unsigned long)image->pi_start +
 	    pcm->ppm_lowpc + sym->ps_end);
 
 	return (sym);
