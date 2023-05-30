@@ -4,11 +4,11 @@ OBJS += libpmcstat_symbol.o
 OBJS += hwt.o
 OBJS += hwt_process.o
 OBJS += cs.o
-LIBS += -lc++ -lc -lelf ${.CURDIR}/libopencsd.a
+
+LIBS += -lc++ -lc -lelf
+LIBS += -lopencsd
 
 all:
-	echo ${.CURDIR}
-
 	cc -c ${.CURDIR}/libpmcstat/libpmcstat_image.c -o libpmcstat_image.o
 	cc -c ${.CURDIR}/libpmcstat/libpmcstat_string.c -o libpmcstat_string.o
 	cc -c ${.CURDIR}/libpmcstat/libpmcstat_symbol.c -o libpmcstat_symbol.o
