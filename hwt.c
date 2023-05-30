@@ -184,6 +184,7 @@ main(int argc, char **argv, char **env)
 
 	printf("processing\n");
 
+	/* Coresight data is always on CPU0 due to funnelling by HW. */
 	tc = &tcs[0];
 	cs_init(tc);
 	cs_process_chunk(tc);
