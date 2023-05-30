@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "hwt.h"
-#include "hwt_var.h"
+#include "hwtvar.h"
 #include "cs.h"
 
 #define	PARENTSOCKET		0

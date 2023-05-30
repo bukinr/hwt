@@ -14,7 +14,7 @@
 #include <string.h>
 
 #include "hwt.h"
-#include "hwt_var.h"
+#include "hwtvar.h"
 #include "cs.h"
 
 #include "libpmcstat/libpmcstat.h"
