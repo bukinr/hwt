@@ -66,6 +66,73 @@ hwt_map_memory(struct trace_context *tc)
 }
 
 int
+process_records(int fd, int pid)
+{
+	pmcstat_interned_string path;
+	struct pmcstat_image *image;
+	struct pmc_plugins plugins;
+	struct pmcstat_process *pp;
+	struct pmcstat_args args;
+	unsigned long addr;
+	struct hwt_record_get record_get;
+	struct trace_context *tc;
+	int nentries;
+	int error;
+	int j;
+	int i;
+
+	nentries = 256;
+
+	memset(&plugins, 0, sizeof(struct pmc_plugins));
+	memset(&args, 0, sizeof(struct pmcstat_args));
+	args.pa_fsroot = "/";
+
+	pp = hwt_process_alloc();
+
+	printf("%s: pp %#p\n", __func__, pp);
+
+	for (i = 0; i < 4; i++) {
+		tc = &tcs[i];
+		tc->cpu_id = i;
+		tc->pp = pp;
+		tc->records = malloc(sizeof(struct hwt_record_user_entry) * 1024);
+		record_get.pid = pid;
+		record_get.cpu_id = tc->cpu_id;
+		record_get.records = tc->records;
+		record_get.nentries = &nentries;
+		error = ioctl(fd, HWT_IOC_RECORD_GET, &record_get);
+		printf("RECORD_GET cpuid %d error %d entires %d\n", i, error, nentries);
+		if (error != 0 || nentries == 0)
+                        continue;
+
+		for (j = 0; j < nentries; j++) {
+			printf("  lib #%d: path %s addr %lx size %lx\n", j,
+			    tc->records[j].fullpath,
+			    (unsigned long)tc->records[j].addr,
+			    tc->records[j].size);
+
+			path = pmcstat_string_intern(tc->records[j].fullpath);
+			if ((image = pmcstat_image_from_path(path, 0,
+			    &args, &plugins)) == NULL)
+				return (-1);
+
+			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
+				pmcstat_image_determine_type(image, &args);
+
+			addr = (unsigned long)tc->records[j].addr & ~1;
+			addr -= (image->pi_start - image->pi_vaddr);
+			pmcstat_image_link(pp, image, addr);
+			printf("image pi_vaddr %lx pi_start %lx pi_entry %lx\n",
+			    (unsigned long)image->pi_vaddr,
+			    (unsigned long)image->pi_start,
+			    (unsigned long)image->pi_entry);
+		}
+	}
+
+	return (0);
+}
+
+int
 main(int argc, char **argv, char **env)
 {
 	struct hwt_start s;
@@ -144,65 +211,7 @@ main(int argc, char **argv, char **env)
 
 	sleep(1);
 
-	struct hwt_record_get record_get;
-	int nentries;
-	int j;
-
-	nentries = 256;
-
-	unsigned long addr;
-	struct pmcstat_process *pp;
-	struct pmc_plugins plugins;
-	struct pmcstat_args args;
-	pmcstat_interned_string path;
-	struct pmcstat_image *image;
-
-	memset(&plugins, 0, sizeof(struct pmc_plugins));
-	memset(&args, 0, sizeof(struct pmcstat_args));
-	args.pa_fsroot = "/";
-
-	path = pmcstat_string_intern(*cmd);
-	pp = hwt_process_create(path);
-
-	printf("%s: pp %#p\n", __func__, pp);
-
-	for (i = 0; i < 4; i++) {
-		tc = &tcs[i];
-		tc->cpu_id = i;
-		tc->pp = pp;
-		tc->records = malloc(sizeof(struct hwt_record_user_entry) * 1024);
-		record_get.pid = pid;
-		record_get.cpu_id = tc->cpu_id;
-		record_get.records = tc->records;
-		record_get.nentries = &nentries;
-		error = ioctl(fd, HWT_IOC_RECORD_GET, &record_get);
-		printf("RECORD_GET cpuid %d error %d entires %d\n", i, error, nentries);
-		if (error != 0 || nentries == 0)
-                        continue;
-
-		for (j = 0; j < nentries; j++) {
-			printf("  lib #%d: path %s addr %lx size %lx\n", j,
-			    tc->records[j].fullpath,
-			    (unsigned long)tc->records[j].addr,
-			    tc->records[j].size);
-
-			path = pmcstat_string_intern(tc->records[j].fullpath);
-			if ((image = pmcstat_image_from_path(path, 0,
-			    &args, &plugins)) == NULL)
-				return (-1);
-
-			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
-				pmcstat_image_determine_type(image, &args);
-
-			addr = (unsigned long)tc->records[j].addr & ~1;
-			addr -= (image->pi_start - image->pi_vaddr);
-			pmcstat_image_link(pp, image, addr);
-			printf("image pi_vaddr %lx pi_start %lx pi_entry %lx\n",
-			    (unsigned long)image->pi_vaddr,
-			    (unsigned long)image->pi_start,
-			    (unsigned long)image->pi_entry);
-		}
-	}
+	process_records(fd, pid);
 
 	close(fd);
 

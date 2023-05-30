@@ -82,7 +82,7 @@ hwt_create_process(int *sockpair, char **cmd, char **env, int *pid0)
 }
 
 struct pmcstat_process *
-hwt_process_create(pmcstat_interned_string path)
+hwt_process_alloc(void)
 {
 	struct pmcstat_process *pp;
 

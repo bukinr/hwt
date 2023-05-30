@@ -9,6 +9,6 @@ struct trace_context {
 	int pid;
 };
 
-struct pmcstat_process * hwt_process_create(pmcstat_interned_string);
+struct pmcstat_process *hwt_process_alloc(void);
 int hwt_create_process(int *sockpair, char **cmd, char **env, int *pid0);
 int hwt_start_process(int *sockpair);
