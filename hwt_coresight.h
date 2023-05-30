@@ -27,10 +27,10 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_CS_H_
-#define	_CS_H_
+#ifndef	_HWT_CORESIGHT_H_
+#define	_HWT_CORESIGHT_H_
 
 int cs_init(struct trace_context *tc);
 int cs_process_chunk(struct trace_context *tc);
 
-#endif /* !_CS_H_ */
+#endif /* !_HWT_CORESIGHT_H_ */

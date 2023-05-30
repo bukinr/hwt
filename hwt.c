@@ -43,7 +43,7 @@
 
 #include "hwt.h"
 #include "hwtvar.h"
-#include "cs.h"
+#include "hwt_coresight.h"
 
 #define	PARENTSOCKET		0
 #define	CHILDSOCKET		1

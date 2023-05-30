@@ -50,7 +50,7 @@
 
 #include "hwt.h"
 #include "hwtvar.h"
-#include "cs.h"
+#include "hwt_coresight.h"
 
 #include "libpmcstat/libpmcstat.h"
 
