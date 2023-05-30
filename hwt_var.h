@@ -9,7 +9,4 @@ struct trace_context {
 	int pid;
 };
 
-struct pmcstat_process * hwt_process_test(char *);
-struct pmcstat_process *
-hwt_process_create(pmcstat_interned_string path, struct pmcstat_args *args,
-    struct pmc_plugins *plugins);
+struct pmcstat_process * hwt_process_create(pmcstat_interned_string);

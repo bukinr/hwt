@@ -221,7 +221,7 @@ main(int argc, char **argv, char **env)
 	args.pa_fsroot = "/";
 
 	path = pmcstat_string_intern(*cmd);
-	pp = hwt_process_create(path, &args, &plugins);
+	pp = hwt_process_create(path);// &args, &plugins);
 
 	printf("%s: pp %#p\n", __func__, pp);
 
