@@ -28,6 +28,8 @@
  * SUCH DAMAGE.
  */
 
+/* ARM CoreSight tracing unit. */
+
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
