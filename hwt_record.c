@@ -95,10 +95,12 @@ hwt_record_fetch(struct trace_context *tc)
 		addr = (unsigned long)tc->records[j].addr & ~1;
 		addr -= (image->pi_start - image->pi_vaddr);
 		pmcstat_image_link(tc->pp, image, addr);
+#if 0
 		printf("image pi_vaddr %lx pi_start %lx pi_entry %lx\n",
 		    (unsigned long)image->pi_vaddr,
 		    (unsigned long)image->pi_start,
 		    (unsigned long)image->pi_entry);
+#endif
 	}
 
 	return (0);

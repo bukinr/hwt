@@ -387,6 +387,7 @@ gen_trace_elem_print_lookup(const void *p_context,
 	struct trace_context *tc;
 	ocsd_datapath_resp_t resp;
 	struct pmcstat_symbol *sym;
+	unsigned long offset;
 	uint64_t newpc;
 	uint64_t ip;
 
@@ -411,12 +412,27 @@ gen_trace_elem_print_lookup(const void *p_context,
 
 	sym = symbol_lookup(tc, ip, &image, &newpc);
 
+	static const char *ARMv8Excep[] = {
+		"PE Reset", "Debug Halt", "Call", "Trap",
+		"System Error", "Reserved", "Inst Debug", "Data Debug",
+		"Reserved", "Reserved", "Alignment", "Inst Fault",
+		"Data Fault", "Reserved", "IRQ", "FIQ"
+	};
+
+
 	switch (elem->elem_type) {
 	case OCSD_GEN_TRC_ELEM_UNKNOWN:
+		printf("Unknown packet.\n");
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_NO_SYNC:
+		printf("No sync.\n");
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_TRACE_ON:
+		printf("Trace on.\n");
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_EO_TRACE:
-		break;
+		printf("End of Trace.\n");
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_PE_CONTEXT:
 		break;
 	case OCSD_GEN_TRC_ELEM_INSTR_RANGE:
@@ -425,21 +441,18 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
 		break;
 	case OCSD_GEN_TRC_ELEM_EXCEPTION:
-
-		printf("Exception %d\n", elem->exception_number);
-
-		dprintf("%s: Idx:%d ELEM TYPE %d, st_addr %lx, en_addr %lx\n",
-		    __func__, index_sop, elem->elem_type,
-		    elem->st_addr, elem->en_addr);
-		break;
+		printf("Exception #%d (%s)\n", elem->exception_number,
+		    ARMv8Excep[elem->exception_number]);
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_EXCEPTION_RET:
+		printf("Exception RET to %lx\n", elem->st_addr);
 		break;
 	case OCSD_GEN_TRC_ELEM_TIMESTAMP:
-		//printf("Timestamp: %ld\n", elem->timestamp);
-		break;
+		printf("Timestamp: %ld\n", elem->timestamp);
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_CYCLE_COUNT:
 		printf("Cycle count: %d\n", elem->cycle_count);
-		break;
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_EVENT:
 	case OCSD_GEN_TRC_ELEM_SWTRACE:
 	case OCSD_GEN_TRC_ELEM_SYNC_MARKER:
@@ -449,19 +462,32 @@ gen_trace_elem_print_lookup(const void *p_context,
 		break;
 	};
 
-	unsigned long offset;
+#if 0
+	char ts[100];
+
+	if (elem->timestamp != 0)
+		sprintf(ts, "ts %ld", elem->timestamp);
+	else
+		sprintf(ts, "                  ");
+#endif
 
 	if (sym) {
 		offset = newpc - (sym->ps_start + image->pi_vaddr);
-		printf("cpu%d:  IP 0x%lx (%lx) %s %s+0x%lx\n", tc->cpu_id, ip, newpc,
+
+		printf("%d cpu%d: pc 0x%8lx (%7lx) %12s %s+0x%lx\n", elem->elem_type,
+		    tc->cpu_id,
+		    ip, newpc,
 		    pmcstat_string_unintern(image->pi_name),
 		    pmcstat_string_unintern(sym->ps_name), offset);
 	} else
 		if (image)
-			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu_id, ip, newpc,
+			printf("%d cpu%d: pc 0x%8lx (%7lx) %12s\n", elem->elem_type,
+			    tc->cpu_id,
+			    ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
-		else
-			printf("image not found\n");
+		else {
+			/* image not found. */
+		}
 
 	return (resp);
 }
