@@ -350,12 +350,12 @@ pmcstat_process_find_map(struct pmcstat_process *p, uintfptr_t pc)
 }
 
 static struct pmcstat_symbol *
-symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
+symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img,
+    uint64_t *newpc0)
 {
 	struct pmcstat_image *image;
 	struct pmcstat_symbol *sym;
 	struct pmcstat_pcmap *map;
-	unsigned long offset;
 	uint64_t newpc;
 
 	map = pmcstat_process_find_map(tc->pp, ip);
@@ -363,19 +363,11 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img)
 		image = map->ppm_image;
 		newpc = ip - ((unsigned long)map->ppm_lowpc +
 		    (image->pi_vaddr - image->pi_start));
-		sym = pmcstat_symbol_search(image, newpc);
-		*img = image;
-
+		sym = pmcstat_symbol_search(image, newpc); /* Could be NULL. */
 		newpc += image->pi_vaddr;
 
-		if (sym) {
-			offset = newpc - (sym->ps_start + image->pi_vaddr);
-			printf("cpu%d:  IP 0x%lx (%lx) %s %s+0x%lx\n", tc->cpu_id, ip, newpc,
-			    pmcstat_string_unintern(image->pi_name),
-			    pmcstat_string_unintern(sym->ps_name), offset);
-		} else
-			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu_id, ip, newpc,
-			    pmcstat_string_unintern(image->pi_name));
+		*img = image;
+		*newpc0 = newpc;
 
 		return (sym);
 	} else
@@ -394,6 +386,9 @@ gen_trace_elem_print_lookup(const void *p_context,
 	struct pmcstat_image *image;
 	struct trace_context *tc;
 	ocsd_datapath_resp_t resp;
+	struct pmcstat_symbol *sym;
+	uint64_t newpc;
+	uint64_t ip;
 
 	tc = (struct trace_context *)p_context;
 
@@ -412,8 +407,9 @@ gen_trace_elem_print_lookup(const void *p_context,
 	if (elem->st_addr == 0)
 		return (resp);
 #endif
+	ip = elem->st_addr;
 
-	symbol_lookup(tc, elem->st_addr, &image);
+	sym = symbol_lookup(tc, ip, &image, &newpc);
 
 	switch (elem->elem_type) {
 	case OCSD_GEN_TRC_ELEM_UNKNOWN:
@@ -427,10 +423,23 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_I_RANGE_NOPATH:
 	case OCSD_GEN_TRC_ELEM_ADDR_NACC:
 	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
+		break;
 	case OCSD_GEN_TRC_ELEM_EXCEPTION:
+
+		printf("Exception %d\n", elem->exception_number);
+
+		dprintf("%s: Idx:%d ELEM TYPE %d, st_addr %lx, en_addr %lx\n",
+		    __func__, index_sop, elem->elem_type,
+		    elem->st_addr, elem->en_addr);
+		break;
 	case OCSD_GEN_TRC_ELEM_EXCEPTION_RET:
+		break;
 	case OCSD_GEN_TRC_ELEM_TIMESTAMP:
+		//printf("Timestamp: %ld\n", elem->timestamp);
+		break;
 	case OCSD_GEN_TRC_ELEM_CYCLE_COUNT:
+		printf("Cycle count: %d\n", elem->cycle_count);
+		break;
 	case OCSD_GEN_TRC_ELEM_EVENT:
 	case OCSD_GEN_TRC_ELEM_SWTRACE:
 	case OCSD_GEN_TRC_ELEM_SYNC_MARKER:
@@ -439,6 +448,20 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_CUSTOM:
 		break;
 	};
+
+	unsigned long offset;
+
+	if (sym) {
+		offset = newpc - (sym->ps_start + image->pi_vaddr);
+		printf("cpu%d:  IP 0x%lx (%lx) %s %s+0x%lx\n", tc->cpu_id, ip, newpc,
+		    pmcstat_string_unintern(image->pi_name),
+		    pmcstat_string_unintern(sym->ps_name), offset);
+	} else
+		if (image)
+			printf("cpu%d:  IP 0x%lx (%lx) %s not found\n", tc->cpu_id, ip, newpc,
+			    pmcstat_string_unintern(image->pi_name));
+		else
+			printf("image not found\n");
 
 	return (resp);
 }
