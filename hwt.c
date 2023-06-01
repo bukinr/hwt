@@ -33,6 +33,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
+#include <sys/wait.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,7 +174,16 @@ main(int argc, char **argv, char **env)
 
 	printf("waiting proc to finish\n");
 
-	sleep(1);
+	int status;
+
+	wait(&status);
+
+	if (WIFEXITED(status))
+		printf("child complete with ret %d\n",
+		    WEXITSTATUS(status));
+	else
+		printf("child complete with signal %d\n",
+		    WTERMSIG(status));
 
 	for (i = 0; i < 4; i++) {
 		tc = &tcs[i];

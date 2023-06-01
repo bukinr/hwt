@@ -419,7 +419,6 @@ gen_trace_elem_print_lookup(const void *p_context,
 		"Data Fault", "Reserved", "IRQ", "FIQ"
 	};
 
-
 	switch (elem->elem_type) {
 	case OCSD_GEN_TRC_ELEM_UNKNOWN:
 		printf("Unknown packet.\n");
@@ -437,16 +436,18 @@ gen_trace_elem_print_lookup(const void *p_context,
 		break;
 	case OCSD_GEN_TRC_ELEM_INSTR_RANGE:
 	case OCSD_GEN_TRC_ELEM_I_RANGE_NOPATH:
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_ADDR_NACC:
-	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
 		break;
+	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_EXCEPTION:
 		printf("Exception #%d (%s)\n", elem->exception_number,
 		    ARMv8Excep[elem->exception_number]);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EXCEPTION_RET:
 		printf("Exception RET to %lx\n", elem->st_addr);
-		break;
+		return (resp);
 	case OCSD_GEN_TRC_ELEM_TIMESTAMP:
 		printf("Timestamp: %ld\n", elem->timestamp);
 		return (resp);
@@ -459,7 +460,7 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_MEMTRANS:
 	case OCSD_GEN_TRC_ELEM_INSTRUMENTATION:
 	case OCSD_GEN_TRC_ELEM_CUSTOM:
-		break;
+		return (resp);
 	};
 
 #if 0
