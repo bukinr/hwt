@@ -119,13 +119,6 @@ main(int argc, char **argv, char **env)
 
 	printf("%s: process pid %d created\n", __func__, pid);
 
-#if 0
-	while (1)
-		sleep(5);
-
-	return (0);
-#endif
-
 	fd = open("/dev/hwt", O_RDWR);
 	if (fd < 0) {
 		printf("Can't open /dev/hwt\n");
@@ -133,6 +126,8 @@ main(int argc, char **argv, char **env)
 	}
 
 	pp = hwt_process_alloc();
+	pp->pp_pid = pid;
+	pp->pp_isactive = 1;
 
 	for (i = 0; i < 4; i++) {
 		tc = &tcs[i];

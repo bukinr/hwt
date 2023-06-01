@@ -67,8 +67,6 @@ hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0)
 	pid_t pid;
 	int error;
 
-	printf("cmd %s\n", *cmd);
-
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockpair) < 0)
 		return (-1);
 
@@ -115,15 +113,9 @@ hwt_process_alloc(void)
 {
 	struct pmcstat_process *pp;
 
-	if ((pp = malloc(sizeof(*pp))) == NULL)
-		return (NULL);
-
-#if 0
-	pp->pp_pid = pid;
-	pp->pp_isactive = 1;
-#endif
-
-	TAILQ_INIT(&pp->pp_map);
+	pp = malloc(sizeof(struct pmcstat_process));
+	if (pp)
+		TAILQ_INIT(&pp->pp_map);
 
 	return (pp);
 }
