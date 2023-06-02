@@ -234,7 +234,7 @@ main(int argc, char **argv, char **env)
 	printf("data to process %ld\n", offs);
 
 	cs_init(tc);
-	cs_process_chunk(tc, offs);
+	cs_process_chunk(tc, 0, offs);
 
 	return (0);
 }
