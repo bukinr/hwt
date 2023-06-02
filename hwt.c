@@ -96,6 +96,30 @@ hwt_map_memory(struct trace_context *tc)
 	return (0);
 }
 
+size_t
+get_offs(struct trace_context *tc)
+{
+	struct hwt_bufptr_get bget;
+	vm_offset_t curpage_offset;
+	size_t offs;
+	int curpage;
+	int error;
+	int ptr;
+
+	bget.cpu_id = tc->cpu_id;
+	bget.pid = tc->pid;
+	bget.ptr = &ptr;
+	bget.curpage = &curpage;
+	bget.curpage_offset = &curpage_offset;
+	error = ioctl(tc->fd, HWT_IOC_BUFPTR_GET, &bget);
+	if (error == 0)
+		printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
+
+	offs = curpage * PAGE_SIZE + curpage_offset;
+
+	return (offs);
+}
+
 int
 main(int argc, char **argv, char **env)
 {
@@ -195,38 +219,22 @@ main(int argc, char **argv, char **env)
 			if (error == 0)
 				tot_records += nrecords;
 		}
-printf("iter\n");
-	} while (tot_records == 0);
+	} while (tot_records < 3);
 
 	printf("processing\n");
-	int ptr;
 
 	/* Coresight data is always on CPU0 due to funnelling by HW. */
 	tc = &tcs[0];
 
-#if 1
-	struct hwt_bufptr_get bget;
-	vm_offset_t curpage_offset;
-	int curpage;
+	size_t offs;
+	offs = get_offs(tc);
 
-	bget.cpu_id = tc->cpu_id;
-	bget.pid = tc->pid;
-	bget.ptr = &ptr;
-	bget.curpage = &curpage;
-	bget.curpage_offset = &curpage_offset;
-	error = ioctl(fd, HWT_IOC_BUFPTR_GET, &bget);
-	if (error == 0)
-		printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
 	close(fd);
-#endif
 
-	size_t len;
-	len = curpage * PAGE_SIZE + curpage_offset;
-
-	printf("data to process %ld\n", len);
+	printf("data to process %ld\n", offs);
 
 	cs_init(tc);
-	cs_process_chunk(tc, len);
+	cs_process_chunk(tc, offs);
 
 	return (0);
 }
