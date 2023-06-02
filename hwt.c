@@ -185,14 +185,35 @@ main(int argc, char **argv, char **env)
 		hwt_record_fetch(tc);
 	}
 
-	close(fd);
-
 	printf("processing\n");
+	int ptr;
 
 	/* Coresight data is always on CPU0 due to funnelling by HW. */
 	tc = &tcs[0];
+
+#if 1
+	struct hwt_bufptr_get bget;
+	vm_offset_t curpage_offset;
+	int curpage;
+
+	bget.cpu_id = tc->cpu_id;
+	bget.pid = tc->pid;
+	bget.ptr = &ptr;
+	bget.curpage = &curpage;
+	bget.curpage_offset = &curpage_offset;
+	error = ioctl(fd, HWT_IOC_BUFPTR_GET, &bget);
+	if (error == 0)
+		printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
+	close(fd);
+#endif
+
+	size_t len;
+	len = curpage * PAGE_SIZE + curpage_offset;
+
+	printf("data to process %ld\n", len);
+
 	cs_init(tc);
-	cs_process_chunk(tc);
+	cs_process_chunk(tc, len);
 
 	return (0);
 }
