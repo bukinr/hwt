@@ -169,6 +169,7 @@ main(int argc, char **argv, char **env)
 
 	printf("waiting proc to finish\n");
 
+#if 0
 	int status;
 
 	wait(&status);
@@ -179,11 +180,23 @@ main(int argc, char **argv, char **env)
 	else
 		printf("child complete with signal %d\n",
 		    WTERMSIG(status));
+#endif
 
-	for (i = 0; i < 4; i++) {
-		tc = &tcs[i];
-		hwt_record_fetch(tc);
-	}
+	int nrecords;
+	int tot_records;
+
+	nrecords = 0;
+	tot_records = 0;
+
+	do {
+		for (i = 0; i < 4; i++) {
+			tc = &tcs[i];
+			error = hwt_record_fetch(tc, &nrecords);
+			if (error == 0)
+				tot_records += nrecords;
+		}
+printf("iter\n");
+	} while (tot_records == 0);
 
 	printf("processing\n");
 	int ptr;

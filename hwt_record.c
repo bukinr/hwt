@@ -47,7 +47,7 @@
 #include "libpmcstat/libpmcstat.h"
 
 int
-hwt_record_fetch(struct trace_context *tc)
+hwt_record_fetch(struct trace_context *tc, int *nrecords)
 {
 	pmcstat_interned_string path;
 	struct pmcstat_image *image;
@@ -102,6 +102,8 @@ hwt_record_fetch(struct trace_context *tc)
 		    (unsigned long)image->pi_entry);
 #endif
 	}
+
+	*nrecords = nentries;
 
 	return (0);
 }
