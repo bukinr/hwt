@@ -34,6 +34,7 @@
 #include <sys/mman.h>
 #include <sys/errno.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +55,17 @@ struct pmcstat_image_hash_list pmcstat_image_hash[PMCSTAT_NHASH];
 static struct trace_context tcs[4];
 
 #include "libpmcstat/libpmcstat.h"
+
+static void
+hwt_sleep(void)
+{
+	struct timespec time_to_sleep;
+
+	time_to_sleep.tv_sec = 0;
+	time_to_sleep.tv_nsec = 10000000; /* 10 ms */
+
+	nanosleep(&time_to_sleep, &time_to_sleep);
+}
 
 static int
 hwt_ctx_alloc(int fd, struct trace_context *tc)
@@ -249,10 +261,10 @@ main(int argc, char **argv, char **env)
 		if (error)
 			return (-1);
 
-printf("offs %ld new_offs %ld\n", end, offs);
+//printf("offs %ld new_offs %ld\n", end, offs);
 		if (offs == end) {
 			/* No new entries in trace. */
-			sleep(1);
+			hwt_sleep();
 			continue;
 		}
 
@@ -261,7 +273,7 @@ printf("offs %ld new_offs %ld\n", end, offs);
 			start = end;
 			end = offs;
 			cs_process_chunk(tc, start, end);
-			sleep(1);
+			hwt_sleep();
 			continue;
 		}
 
@@ -274,6 +286,8 @@ printf("offs %ld new_offs %ld\n", end, offs);
 			start = 0;
 			end = offs;
 			cs_process_chunk(tc, start, end);
+
+			hwt_sleep();
 		}
 	}
 

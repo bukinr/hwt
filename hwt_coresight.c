@@ -300,7 +300,7 @@ cs_process_chunk(struct trace_context *tc, size_t start, size_t end)
 	dprintf("%s: tc->base %#p\n", __func__, tc->base);
 
 	bytes_this_time = 0;
-	block_index = 0;
+	block_index = start;
 	bytes_done = 0;
 	block_size = end - start;
 	p_block = (uint8_t *)(tc->base + start);
