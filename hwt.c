@@ -96,12 +96,11 @@ hwt_map_memory(struct trace_context *tc)
 	return (0);
 }
 
-size_t
-get_offs(struct trace_context *tc)
+static size_t
+get_offs(struct trace_context *tc, size_t *offs)
 {
 	struct hwt_bufptr_get bget;
 	vm_offset_t curpage_offset;
-	size_t offs;
 	int curpage;
 	int error;
 	int ptr;
@@ -112,12 +111,14 @@ get_offs(struct trace_context *tc)
 	bget.curpage = &curpage;
 	bget.curpage_offset = &curpage_offset;
 	error = ioctl(tc->fd, HWT_IOC_BUFPTR_GET, &bget);
-	if (error == 0)
-		printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
+	if (error)
+		return (error);
 
-	offs = curpage * PAGE_SIZE + curpage_offset;
+	printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
 
-	return (offs);
+	*offs = curpage * PAGE_SIZE + curpage_offset;
+
+	return (0);
 }
 
 int
@@ -191,10 +192,10 @@ main(int argc, char **argv, char **env)
 	if (error != 0)
 		return (error);
 
-	printf("waiting proc to finish\n");
-
 #if 0
 	int status;
+
+	printf("waiting proc to finish\n");
 
 	wait(&status);
 
@@ -225,16 +226,58 @@ main(int argc, char **argv, char **env)
 
 	/* Coresight data is always on CPU0 due to funnelling by HW. */
 	tc = &tcs[0];
+	cs_init(tc);
 
 	size_t offs;
-	offs = get_offs(tc);
+	error = get_offs(tc, &offs);
 
-	close(fd);
+	if (error)
+		return (-1);
 
 	printf("data to process %ld\n", offs);
 
-	cs_init(tc);
-	cs_process_chunk(tc, 0, offs);
+	size_t start;
+	size_t end;
+
+	start = 0;
+	end = offs;
+
+	cs_process_chunk(tc, start, end);
+
+	while (1) {
+		error = get_offs(tc, &offs);
+		if (error)
+			return (-1);
+
+printf("offs %ld new_offs %ld\n", end, offs);
+		if (offs == end) {
+			/* No new entries in trace. */
+			sleep(1);
+			continue;
+		}
+
+		if (offs > end) {
+			/* New entries in the trace buffer. */
+			start = end;
+			end = offs;
+			cs_process_chunk(tc, start, end);
+			sleep(1);
+			continue;
+		}
+
+		if (offs < end) {
+			/* New entries in the trace buffer. Buffer wrapped. */
+			start = end;
+			end = tc->bufsize;
+			cs_process_chunk(tc, start, end);
+
+			start = 0;
+			end = offs;
+			cs_process_chunk(tc, start, end);
+		}
+	}
+
+	close(fd);
 
 	return (0);
 }

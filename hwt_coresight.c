@@ -287,12 +287,13 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 }
 
 int
-cs_process_chunk(struct trace_context *tc, size_t start, size_t block_size)
+cs_process_chunk(struct trace_context *tc, size_t start, size_t end)
 {
 	uint32_t bytes_done;
 	uint8_t *p_block;
 	uint32_t bytes_this_time;
 	int block_index;
+	size_t block_size;
 	int dp_ret;
 	int ret;
 
@@ -301,7 +302,7 @@ cs_process_chunk(struct trace_context *tc, size_t start, size_t block_size)
 	bytes_this_time = 0;
 	block_index = 0;
 	bytes_done = 0;
-	//block_size = tc->bufsize;
+	block_size = end - start;
 	p_block = (uint8_t *)(tc->base + start);
 
 	ret = OCSD_OK;
