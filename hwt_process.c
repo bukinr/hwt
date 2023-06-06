@@ -33,6 +33,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
+#include <sys/wait.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -60,6 +61,21 @@ hwt_process_start(int *sockpair)
 	return (0);
 }
 
+void
+proc_exit(int signo)
+{
+	pid_t pid;
+	int status;
+
+	assert(signo == SIGCHLD);
+
+	while ((pid = wait3(&status, WNOHANG, NULL)) > 0) {
+		printf("pid %d status %x\n", pid, status);
+		if (WIFEXITED(status))
+			printf("exited\n");
+	}
+}
+
 int
 hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0)
 {
@@ -69,6 +85,8 @@ hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0)
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockpair) < 0)
 		return (-1);
+
+	signal(SIGCHLD, proc_exit);
 
 	pid = fork();
 
