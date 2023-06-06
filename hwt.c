@@ -122,7 +122,7 @@ hwt_map_memory(struct trace_context *tc)
 }
 
 static size_t
-get_offs(struct trace_context *tc, size_t *offs)
+hwt_get_offs(struct trace_context *tc, size_t *offs)
 {
 	struct hwt_bufptr_get bget;
 	vm_offset_t curpage_offset;
@@ -142,6 +142,31 @@ get_offs(struct trace_context *tc, size_t *offs)
 	printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
 
 	*offs = curpage * PAGE_SIZE + curpage_offset;
+
+	return (0);
+}
+
+int
+hwt_get_records(uint32_t *nrec)
+{
+	struct trace_context *tc;
+	int tot_records;
+	int nrecords;
+	int error;
+	int i;
+
+	tot_records = 0;
+
+	for (i = 0; i < 4; i++) {
+		tc = &tcs[i];
+		error = hwt_record_fetch(tc, &nrecords);
+		if (error)
+			return (error);
+
+		tot_records += nrecords;
+	}
+
+	*nrec = tot_records;
 
 	return (0);
 }
@@ -217,35 +242,17 @@ main(int argc, char **argv, char **env)
 	if (error != 0)
 		return (error);
 
-#if 0
-	int status;
+	uint32_t nrec;
+	uint32_t tot_rec;
 
-	printf("waiting proc to finish\n");
-
-	wait(&status);
-
-	if (WIFEXITED(status))
-		printf("child complete with ret %d\n",
-		    WEXITSTATUS(status));
-	else
-		printf("child complete with signal %d\n",
-		    WTERMSIG(status));
-#endif
-
-	int nrecords;
-	int tot_records;
-
-	nrecords = 0;
-	tot_records = 0;
+	tot_rec = 0;
 
 	do {
-		for (i = 0; i < 4; i++) {
-			tc = &tcs[i];
-			error = hwt_record_fetch(tc, &nrecords);
-			if (error == 0)
-				tot_records += nrecords;
-		}
-	} while (tot_records < 3);
+		error = hwt_get_records(&nrec);
+		if (error != 0)
+			return (error);
+		tot_rec += nrec;
+	} while (tot_rec < 3);
 
 	printf("processing\n");
 
@@ -254,7 +261,7 @@ main(int argc, char **argv, char **env)
 	cs_init(tc);
 
 	size_t offs;
-	error = get_offs(tc, &offs);
+	error = hwt_get_offs(tc, &offs);
 
 	if (error)
 		return (-1);
@@ -273,7 +280,7 @@ main(int argc, char **argv, char **env)
 		if (tc->terminate)
 			break;
 
-		error = get_offs(tc, &offs);
+		error = hwt_get_offs(tc, &offs);
 		if (error)
 			return (-1);
 
