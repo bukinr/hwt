@@ -175,7 +175,7 @@ packet_monitor(void *context __unused,
 }
 
 static uint32_t
-cs_cs_decoder__mem_access(const void *context __unused,
+cs_decoder__mem_access(const void *context __unused,
     const ocsd_vaddr_t address __unused,
     const ocsd_mem_space_acc_t mem_space __unused,
     const uint32_t req_size __unused, uint8_t *buffer __unused)
@@ -200,7 +200,7 @@ create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 	if (cs_flags & FLAG_CALLBACK_MEM_ACC)
 		ret = ocsd_dt_add_callback_mem_acc(handle, base + start,
 			base + end - 1, OCSD_MEM_SPACE_ANY,
-			cs_cs_decoder__mem_access, NULL);
+			cs_decoder__mem_access, NULL);
 	else
 #endif
 	{
@@ -494,7 +494,7 @@ gen_trace_elem_print_lookup(const void *p_context,
 }
 
 int
-cs_init(struct trace_context *tc)
+hwt_coresight_init(struct trace_context *tc)
 {
 	uintptr_t start, end;
 	int error;
@@ -543,7 +543,7 @@ hwt_coresight_process(struct trace_context *tcs)
 	/* Coresight data is always on CPU0 due to funnelling by HW. */
 	tc = &tcs[0];
 
-	cs_init(tc);
+	hwt_coresight_init(tc);
 
 	error = hwt_get_offs(tc, &offs);
 	if (error)

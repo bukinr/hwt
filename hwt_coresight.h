@@ -30,7 +30,7 @@
 #ifndef	_HWT_CORESIGHT_H_
 #define	_HWT_CORESIGHT_H_
 
-int cs_init(struct trace_context *tc);
+int hwt_coresight_init(struct trace_context *tc);
 int hwt_coresight_process(struct trace_context *tcs);
 
 #endif /* !_HWT_CORESIGHT_H_ */
