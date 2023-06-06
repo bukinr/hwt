@@ -31,6 +31,6 @@
 #define	_HWT_CORESIGHT_H_
 
 int cs_init(struct trace_context *tc);
-int cs_process_chunk(struct trace_context *tc, size_t start, size_t block_size);
+int hwt_coresight_process(struct trace_context *tcs);
 
 #endif /* !_HWT_CORESIGHT_H_ */

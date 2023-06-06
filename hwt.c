@@ -56,7 +56,7 @@ static struct trace_context tcs[4];
 
 #include "libpmcstat/libpmcstat.h"
 
-static void
+void
 hwt_sleep(void)
 {
 	struct timespec time_to_sleep;
@@ -121,7 +121,7 @@ hwt_map_memory(struct trace_context *tc)
 	return (0);
 }
 
-static size_t
+size_t
 hwt_get_offs(struct trace_context *tc, size_t *offs)
 {
 	struct hwt_bufptr_get bget;
@@ -256,63 +256,7 @@ main(int argc, char **argv, char **env)
 
 	printf("processing\n");
 
-	/* Coresight data is always on CPU0 due to funnelling by HW. */
-	tc = &tcs[0];
-	cs_init(tc);
-
-	size_t offs;
-	error = hwt_get_offs(tc, &offs);
-
-	if (error)
-		return (-1);
-
-	printf("data to process %ld\n", offs);
-
-	size_t start;
-	size_t end;
-
-	start = 0;
-	end = offs;
-
-	cs_process_chunk(tc, start, end);
-
-	while (1) {
-		if (tc->terminate)
-			break;
-
-		error = hwt_get_offs(tc, &offs);
-		if (error)
-			return (-1);
-
-//printf("offs %ld new_offs %ld\n", end, offs);
-		if (offs == end) {
-			/* No new entries in trace. */
-			hwt_sleep();
-			continue;
-		}
-
-		if (offs > end) {
-			/* New entries in the trace buffer. */
-			start = end;
-			end = offs;
-			cs_process_chunk(tc, start, end);
-			hwt_sleep();
-			continue;
-		}
-
-		if (offs < end) {
-			/* New entries in the trace buffer. Buffer wrapped. */
-			start = end;
-			end = tc->bufsize;
-			cs_process_chunk(tc, start, end);
-
-			start = 0;
-			end = offs;
-			cs_process_chunk(tc, start, end);
-
-			hwt_sleep();
-		}
-	}
+	hwt_coresight_process(tcs);
 
 	close(fd);
 

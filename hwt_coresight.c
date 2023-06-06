@@ -286,7 +286,7 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 	return (ret);
 }
 
-int
+static int
 cs_process_chunk(struct trace_context *tc, size_t start, size_t end)
 {
 	uint32_t bytes_done;
@@ -527,6 +527,71 @@ cs_init(struct trace_context *tc)
 		    gen_trace_elem_print_lookup, tc);
 
 	attach_raw_printers(dcdtree_handle);
+
+	return (0);
+}
+
+int
+hwt_coresight_process(struct trace_context *tcs)
+{
+	struct trace_context *tc;
+	size_t start;
+	size_t end;
+	size_t offs;
+	int error;
+
+	/* Coresight data is always on CPU0 due to funnelling by HW. */
+	tc = &tcs[0];
+
+	cs_init(tc);
+
+	error = hwt_get_offs(tc, &offs);
+	if (error)
+		return (-1);
+
+	printf("data to process %ld\n", offs);
+
+	start = 0;
+	end = offs;
+
+	cs_process_chunk(tc, start, end);
+
+	while (1) {
+		if (tc->terminate)
+			break;
+
+		error = hwt_get_offs(tc, &offs);
+		if (error)
+			return (-1);
+
+		if (offs == end) {
+			/* No new entries in trace. */
+			hwt_sleep();
+			continue;
+		}
+
+		if (offs > end) {
+			/* New entries in the trace buffer. */
+			start = end;
+			end = offs;
+			cs_process_chunk(tc, start, end);
+			hwt_sleep();
+			continue;
+		}
+
+		if (offs < end) {
+			/* New entries in the trace buffer. Buffer wrapped. */
+			start = end;
+			end = tc->bufsize;
+			cs_process_chunk(tc, start, end);
+
+			start = 0;
+			end = offs;
+			cs_process_chunk(tc, start, end);
+
+			hwt_sleep();
+		}
+	}
 
 	return (0);
 }
