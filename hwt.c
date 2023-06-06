@@ -175,6 +175,7 @@ main(int argc, char **argv, char **env)
 {
 	struct pmcstat_process *pp;
 	struct trace_context *tc;
+	int is_coresight;
 	struct hwt_start s;
 	uint32_t tot_rec;
 	uint32_t nrec;
@@ -205,6 +206,8 @@ main(int argc, char **argv, char **env)
 	pp->pp_pid = pid;
 	pp->pp_isactive = 1;
 
+	is_coresight = 1; /* TODO */
+
 	for (i = 0; i < 4; i++) {
 		tc = &tcs[i];
 		tc->cpu_id = i;
@@ -212,7 +215,8 @@ main(int argc, char **argv, char **env)
 		tc->pid = pid;
 		tc->fd = fd;
 
-		if (i == 0)
+		/* Coresight data is always on tc0 due to funneling by HW. */
+		if (!is_coresight || i == 0)
 			tc->bufsize = 16 * 1024 * 1024;
 
 		error = hwt_ctx_alloc(fd, tc);
@@ -222,7 +226,7 @@ main(int argc, char **argv, char **env)
 			return (error);
 		}
 
-		if (i == 0) {
+		if (!is_coresight || i == 0) {
 			error = hwt_map_memory(tc);
 			if (error != 0) {
 				printf("can't map memory");
