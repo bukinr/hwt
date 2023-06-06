@@ -40,11 +40,13 @@ struct trace_context {
 	int cpu_id;
 	int pid;
 	int fd;
+	int terminate;
 };
 
 struct pmcstat_process *hwt_process_alloc(void);
 int hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0);
 int hwt_process_start(int *sockpair);
 int hwt_record_fetch(struct trace_context *tc, int *nrecords);
+void hwt_procexit(pid_t pid);
 
 #endif /* !_HWTVAR_H_ */

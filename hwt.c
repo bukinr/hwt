@@ -67,6 +67,19 @@ hwt_sleep(void)
 	nanosleep(&time_to_sleep, &time_to_sleep);
 }
 
+void
+hwt_procexit(pid_t pid)
+{
+	struct trace_context *tc;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		tc = &tcs[i];
+		if (tc->pid == pid)
+			tc->terminate = 1;
+	}
+}
+
 static int
 hwt_ctx_alloc(int fd, struct trace_context *tc)
 {
@@ -257,6 +270,9 @@ main(int argc, char **argv, char **env)
 	cs_process_chunk(tc, start, end);
 
 	while (1) {
+		if (tc->terminate)
+			break;
+
 		error = get_offs(tc, &offs);
 		if (error)
 			return (-1);

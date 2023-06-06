@@ -61,19 +61,17 @@ hwt_process_start(int *sockpair)
 	return (0);
 }
 
-void
-proc_exit(int signo)
+static void
+hwt_process_onsig(int signo)
 {
 	pid_t pid;
 	int status;
 
 	assert(signo == SIGCHLD);
 
-	while ((pid = wait3(&status, WNOHANG, NULL)) > 0) {
-		printf("pid %d status %x\n", pid, status);
+	while ((pid = wait3(&status, WNOHANG, NULL)) > 0)
 		if (WIFEXITED(status))
-			printf("exited\n");
-	}
+			hwt_procexit(pid);
 }
 
 int
@@ -86,7 +84,7 @@ hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0)
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sockpair) < 0)
 		return (-1);
 
-	signal(SIGCHLD, proc_exit);
+	signal(SIGCHLD, hwt_process_onsig);
 
 	pid = fork();
 
