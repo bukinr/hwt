@@ -67,7 +67,7 @@ hwt_sleep(void)
 }
 
 void
-hwt_procexit(pid_t pid)
+hwt_procexit(pid_t pid, int exit_status)
 {
 	struct trace_context *tc;
 	int i;

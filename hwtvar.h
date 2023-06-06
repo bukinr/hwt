@@ -47,7 +47,7 @@ struct pmcstat_process *hwt_process_alloc(void);
 int hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0);
 int hwt_process_start(int *sockpair);
 int hwt_record_fetch(struct trace_context *tc, int *nrecords);
-void hwt_procexit(pid_t pid);
+void hwt_procexit(pid_t pid, int status);
 size_t hwt_get_offs(struct trace_context *tc, size_t *offs);
 void hwt_sleep(void);
 

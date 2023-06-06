@@ -73,7 +73,7 @@ hwt_process_onsig(int signo)
 
 	while ((pid = wait3(&status, WNOHANG, NULL)) > 0)
 		if (WIFEXITED(status))
-			hwt_procexit(pid);
+			hwt_procexit(pid, WEXITSTATUS(status));
 }
 
 int
