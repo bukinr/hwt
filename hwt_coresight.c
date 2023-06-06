@@ -449,7 +449,7 @@ gen_trace_elem_print_lookup(const void *p_context,
 		printf("Exception RET to %lx\n", elem->st_addr);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_TIMESTAMP:
-		printf("Timestamp: %ld\n", elem->timestamp);
+		printf("Timestamp: %lx\n", elem->timestamp);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_CYCLE_COUNT:
 		printf("Cycle count: %d\n", elem->cycle_count);
@@ -475,14 +475,14 @@ gen_trace_elem_print_lookup(const void *p_context,
 	if (sym) {
 		offset = newpc - (sym->ps_start + image->pi_vaddr);
 
-		printf("%d cpu%d: pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n", elem->elem_type,
+		printf("cpu%d: pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n", //elem->elem_type,
 		    tc->cpu_id,
 		    ip, newpc,
 		    pmcstat_string_unintern(image->pi_name),
 		    pmcstat_string_unintern(sym->ps_name), offset);
 	} else
 		if (image)
-			printf("%d cpu%d: pc 0x%08lx (%lx)\t%12s\n", elem->elem_type,
+			printf("cpu%d: pc 0x%08lx (%lx)\t%12s\n", //elem->elem_type,
 			    tc->cpu_id,
 			    ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
