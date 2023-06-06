@@ -177,6 +177,8 @@ main(int argc, char **argv, char **env)
 	struct pmcstat_process *pp;
 	struct trace_context *tc;
 	struct hwt_start s;
+	uint32_t tot_rec;
+	uint32_t nrec;
 	char **cmd;
 	int error;
 	int fd;
@@ -241,9 +243,6 @@ main(int argc, char **argv, char **env)
 	error = hwt_process_start(sockpair);
 	if (error != 0)
 		return (error);
-
-	uint32_t nrec;
-	uint32_t tot_rec;
 
 	tot_rec = 0;
 
