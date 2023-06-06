@@ -475,14 +475,14 @@ gen_trace_elem_print_lookup(const void *p_context,
 	if (sym) {
 		offset = newpc - (sym->ps_start + image->pi_vaddr);
 
-		printf("%d cpu%d: pc 0x%08lx (%7lx) %12s %s+0x%lx\n", elem->elem_type,
+		printf("%d cpu%d: pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n", elem->elem_type,
 		    tc->cpu_id,
 		    ip, newpc,
 		    pmcstat_string_unintern(image->pi_name),
 		    pmcstat_string_unintern(sym->ps_name), offset);
 	} else
 		if (image)
-			printf("%d cpu%d: pc 0x%8lx (%7lx) %12s\n", elem->elem_type,
+			printf("%d cpu%d: pc 0x%08lx (%lx)\t%12s\n", elem->elem_type,
 			    tc->cpu_id,
 			    ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
