@@ -49,6 +49,8 @@
 
 #include "libpmcstat/libpmcstat.h"
 
+struct pmcstat_image_hash_list pmcstat_image_hash[PMCSTAT_NHASH];
+
 int
 hwt_process_start(int *sockpair)
 {

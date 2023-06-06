@@ -51,7 +51,6 @@
 #define	CHILDSOCKET		1
 #define	NSOCKPAIRFD		2
 
-struct pmcstat_image_hash_list pmcstat_image_hash[PMCSTAT_NHASH];
 static struct trace_context tcs[4];
 
 #include "libpmcstat/libpmcstat.h"
