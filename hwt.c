@@ -187,6 +187,7 @@ main(int argc, char **argv, char **env)
 	int i;
 	int sockpair[NSOCKPAIRFD];
 	int pid;
+	size_t bufsize;
 
 	cmd = argv + 1;
 
@@ -222,6 +223,8 @@ main(int argc, char **argv, char **env)
 
 	is_coresight = 1; /* TODO */
 
+	bufsize = 16 * 1024 * 1024;
+
 	for (i = 0; i < ncpu; i++) {
 		tc = &tcs[i];
 		tc->cpu_id = i;
@@ -231,7 +234,7 @@ main(int argc, char **argv, char **env)
 
 		/* Coresight data is always on tc0 due to funneling by HW. */
 		if (!is_coresight || i == 0)
-			tc->bufsize = 16 * 1024 * 1024;
+			tc->bufsize = bufsize;
 
 		error = hwt_ctx_alloc(fd, tc);
 		if (error) {
