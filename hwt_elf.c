@@ -47,14 +47,15 @@ hwt_elf_count_libs(const char *elf_path, int *nlibs0)
 	GElf_Ehdr eh;
 	Elf_Scn *scn;
 	Elf *elf;
+	size_t sh_entsize;
+	Elf_Data *data;
+	GElf_Dyn dyn;
 	int is_dynamic;
 	int nlibs;
 	int fd;
 	int i;
 
-	size_t sh_entsize;
-	Elf_Data *data;
-	GElf_Dyn dyn;
+	nlibs = 0;
 
 	assert(elf_version(EV_CURRENT) != EV_NONE);
 

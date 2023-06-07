@@ -202,7 +202,7 @@ main(int argc, char **argv, char **env)
 
 	tcs = malloc(sizeof(struct trace_context) * ncpu);
 
-	printf("cmd is %s\n", *cmd);
+	printf("cmd is %s, nlibs %d\n", *cmd, nlibs);
 
 	error = hwt_process_create(sockpair, cmd, env, &pid);
 	if (error != 0)
