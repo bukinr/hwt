@@ -77,7 +77,7 @@ hwt_elf_count_libs(const char *elf_path, int *nlibs0)
 		return (-2);
 	}
 
-	if (eh.e_ident[EI_CLASS] != ELFCLASS32 ||
+	if (eh.e_ident[EI_CLASS] != ELFCLASS32 &&
 	    eh.e_ident[EI_CLASS] != ELFCLASS64)
 		return (-3);
 

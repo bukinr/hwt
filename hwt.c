@@ -191,11 +191,10 @@ main(int argc, char **argv, char **env)
 	cmd = argv + 1;
 
 	error = hwt_elf_count_libs(*cmd, &nlibs);
-	if (error != 0)
+	if (error != 0) {
+		printf("could not count libs\n");
 		return (error);
-
-printf("ok");
-	//return (0);
+	}
 
 	nlibs += 1; /* add binary itself. */
 
