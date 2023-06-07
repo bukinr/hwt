@@ -1,3 +1,33 @@
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2023 Ruslan Bukin <br@bsdpad.com>
+ *
+ * This work was supported by Innovate UK project 105694, "Digital Security
+ * by Design (DSbD) Technology Platform Prototype".
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
 #include <sys/types.h>
 #include <assert.h>
 #include <fcntl.h>
@@ -39,23 +69,24 @@ hwt_elf_count_libs(const char *elf_path, int *nlibs0)
 
 	if (gelf_getehdr(elf, &eh) != &eh) {
 		printf("could not find elf header\n");
-		exit(2);
+		return (-1);
 	}
 
 	if (eh.e_type != ET_EXEC && eh.e_type != ET_DYN) {
 		printf("unsupported image\n");
-		exit(2);
+		return (-2);
 	}
 
-	/* Image type ELFCLASS32, ELFCLASS64 */
-	//eh.e_ident[EI_CLASS];
+	if (eh.e_ident[EI_CLASS] != ELFCLASS32 ||
+	    eh.e_ident[EI_CLASS] != ELFCLASS64)
+		return (-3);
 
 	is_dynamic = 0;
 
 	for (i = 0; i < eh.e_phnum; i++) {
 		if (gelf_getphdr(elf, i, &ph) != &ph) {
 			printf("could not get program header %d\n", i);
-			exit(2);
+			return (-4);
 		}
 		switch (ph.p_type) {
 		case PT_DYNAMIC:
