@@ -51,7 +51,8 @@
 #define	CHILDSOCKET		1
 #define	NSOCKPAIRFD		2
 
-static struct trace_context tcs[4];
+static struct trace_context *tcs;
+static int ncpu;
 
 #include "libpmcstat/libpmcstat.h"
 
@@ -72,7 +73,7 @@ hwt_procexit(pid_t pid, int exit_status)
 	struct trace_context *tc;
 	int i;
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < ncpu; i++) {
 		tc = &tcs[i];
 		if (tc->pid == pid)
 			tc->terminate = 1;
@@ -156,7 +157,7 @@ hwt_get_records(uint32_t *nrec)
 
 	tot_records = 0;
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < ncpu; i++) {
 		tc = &tcs[i];
 		error = hwt_record_fetch(tc, &nrecords);
 		if (error)
@@ -188,6 +189,10 @@ main(int argc, char **argv, char **env)
 
 	cmd = argv + 1;
 
+	ncpu = sysconf(_SC_NPROCESSORS_CONF);
+
+	tcs = malloc(sizeof(struct trace_context) * ncpu);
+
 	printf("cmd is %s\n", *cmd);
 
 	error = hwt_process_create(sockpair, cmd, env, &pid);
@@ -208,7 +213,7 @@ main(int argc, char **argv, char **env)
 
 	is_coresight = 1; /* TODO */
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < ncpu; i++) {
 		tc = &tcs[i];
 		tc->cpu_id = i;
 		tc->pp = pp;
@@ -255,8 +260,6 @@ main(int argc, char **argv, char **env)
 			return (error);
 		tot_rec += nrec;
 	} while (tot_rec < 3);
-
-	printf("processing\n");
 
 	hwt_coresight_process(tcs);
 
