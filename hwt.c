@@ -181,6 +181,7 @@ main(int argc, char **argv, char **env)
 	uint32_t tot_rec;
 	uint32_t nrec;
 	char **cmd;
+	int nlibs;
 	int error;
 	int fd;
 	int i;
@@ -188,6 +189,15 @@ main(int argc, char **argv, char **env)
 	int pid;
 
 	cmd = argv + 1;
+
+	error = hwt_elf_count_libs(*cmd, &nlibs);
+	if (error != 0)
+		return (error);
+
+printf("ok");
+	//return (0);
+
+	nlibs += 1; /* add binary itself. */
 
 	ncpu = sysconf(_SC_NPROCESSORS_CONF);
 
@@ -252,6 +262,8 @@ main(int argc, char **argv, char **env)
 	if (error != 0)
 		return (error);
 
+	printf("nlibs %d\n", nlibs);
+
 	tot_rec = 0;
 
 	do {
@@ -259,7 +271,7 @@ main(int argc, char **argv, char **env)
 		if (error != 0)
 			return (error);
 		tot_rec += nrec;
-	} while (tot_rec < 3);
+	} while (tot_rec < nlibs);
 
 	hwt_coresight_process(tcs);
 

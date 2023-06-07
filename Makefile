@@ -1,4 +1,5 @@
 OBJS += hwt_coresight.o
+OBJS += hwt_elf.o
 OBJS += hwt_process.o
 OBJS += hwt_record.o
 OBJS += hwt.o
@@ -13,6 +14,7 @@ all:
 	cc -c ${.CURDIR}/hwt_coresight.c -o hwt_coresight.o
 	cc -c ${.CURDIR}/hwt_process.c -o hwt_process.o
 	cc -c ${.CURDIR}/hwt_record.c -o hwt_record.o
+	cc -c ${.CURDIR}/hwt_elf.c -o hwt_elf.o
 	cc -c ${.CURDIR}/hwt.c -o hwt.o
 	cc -c ${.CURDIR}/libpmcstat/libpmcstat_image.c -o libpmcstat_image.o
 	cc -c ${.CURDIR}/libpmcstat/libpmcstat_string.c -o libpmcstat_string.o
