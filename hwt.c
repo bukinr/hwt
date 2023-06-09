@@ -88,6 +88,7 @@ hwt_ctx_alloc(int fd, struct trace_context *tc)
 
 	al.cpu_id = tc->cpu_id;
 	al.pid = tc->pid;
+	al.bufsize = tc->bufsize;
 
 	error = ioctl(fd, HWT_IOC_ALLOC, &al);
 	if (error != 0)
@@ -235,6 +236,8 @@ main(int argc, char **argv, char **env)
 		/* Coresight data is always on tc0 due to funneling by HW. */
 		if (!is_coresight || i == 0)
 			tc->bufsize = bufsize;
+		else
+			tc->bufsize = PAGE_SIZE; /* Just a page. */
 
 		error = hwt_ctx_alloc(fd, tc);
 		if (error) {
@@ -265,6 +268,7 @@ main(int argc, char **argv, char **env)
 		return (error);
 
 	printf("nlibs %d\n", nlibs);
+	//return (0);
 
 	tot_rec = 0;
 
