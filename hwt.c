@@ -89,6 +89,7 @@ hwt_ctx_alloc(int fd, struct trace_context *tc)
 	al.cpu_id = tc->cpu_id;
 	al.pid = tc->pid;
 	al.bufsize = tc->bufsize;
+	al.backend_name = "coresight";
 
 	error = ioctl(fd, HWT_IOC_ALLOC, &al);
 	if (error != 0)
@@ -103,7 +104,7 @@ hwt_map_memory(struct trace_context *tc)
 	char filename[32];
 	int fd;
 
-	sprintf(filename, "/dev/hwt_%d%d", tc->cpu_id, tc->pid);
+	sprintf(filename, "/dev/hwt_%d_%d", tc->cpu_id, tc->pid);
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
@@ -241,8 +242,11 @@ main(int argc, char **argv, char **env)
 
 		error = hwt_ctx_alloc(fd, tc);
 		if (error) {
-			printf("%s: failed to alloc ctx, cpu_id %d pid %d error %d\n",
+			printf("%s: failed to alloc ctx, "
+			    "cpu_id %d pid %d error %d\n",
 			    __func__, tc->cpu_id, tc->pid, error);
+			while (1);
+
 			return (error);
 		}
 

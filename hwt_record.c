@@ -49,6 +49,7 @@
 int
 hwt_record_fetch(struct trace_context *tc, int *nrecords)
 {
+	struct hwt_record_user_entry *entry;
 	pmcstat_interned_string path;
 	struct pmcstat_image *image;
 	struct pmc_plugins plugins;
@@ -79,12 +80,14 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 	}
 
 	for (j = 0; j < nentries; j++) {
-		printf("  lib #%d: path %s addr %lx size %lx\n", j,
-		    tc->records[j].fullpath,
-		    (unsigned long)tc->records[j].addr,
-		    tc->records[j].size);
+		entry = &tc->records[j];
 
-		path = pmcstat_string_intern(tc->records[j].fullpath);
+		printf("  lib #%d: path %s addr %lx size %lx\n", j,
+		    entry->fullpath,
+		    (unsigned long)entry->addr,
+		    entry->size);
+
+		path = pmcstat_string_intern(entry->fullpath);
 		if ((image = pmcstat_image_from_path(path, 0,
 		    &args, &plugins)) == NULL)
 			return (-1);
@@ -92,7 +95,7 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 		if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
 			pmcstat_image_determine_type(image, &args);
 
-		addr = (unsigned long)tc->records[j].addr & ~1;
+		addr = (unsigned long)entry->addr & ~1;
 		addr -= (image->pi_start - image->pi_vaddr);
 		pmcstat_image_link(tc->pp, image, addr);
 #if 0

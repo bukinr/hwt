@@ -1,6 +1,5 @@
 /*-
  * Copyright (c) 2023 Ruslan Bukin <br@bsdpad.com>
- * All rights reserved.
  *
  * This work was supported by Innovate UK project 105694, "Digital Security
  * by Design (DSbD) Technology Platform Prototype".
@@ -44,29 +43,32 @@
 #define	HWT_IOC_BUFPTR_GET \
 	_IOW(HWT_MAGIC, 0x03, struct hwt_bufptr_get)
 
+#define	HWT_BACKEND_MAXNAMELEN	256
+
 struct hwt_alloc {
 	size_t		bufsize;
 	pid_t		pid;
 	int		cpu_id;
-} __packed __aligned(16);
+	char		*backend_name;
+} __aligned(16);
 
 struct hwt_start {
 	pid_t		pid;
 	int		cpu_id;
-} __packed __aligned(16);
+} __aligned(16);
 
 struct hwt_record_user_entry {
 	char fullpath[MAXPATHLEN];
 	uintptr_t addr;
 	size_t size;
-} __packed __aligned(16);
+} __aligned(16);
 
 struct hwt_record_get {
 	struct hwt_record_user_entry	*records;
 	int				*nentries;
 	int				cpu_id;
 	pid_t				pid;
-} __packed __aligned(16);
+} __aligned(16);
 
 struct hwt_bufptr_get {
 	int		*ptr;
@@ -74,6 +76,6 @@ struct hwt_bufptr_get {
 	vm_offset_t	*curpage_offset;
 	int		cpu_id;
 	pid_t		pid;
-} __packed __aligned(16);
+} __aligned(16);
 
 #endif /* !_DEV_HWT_HWT_H_ */
