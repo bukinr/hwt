@@ -57,10 +57,21 @@ struct hwt_start {
 	int		cpu_id;
 } __aligned(16);
 
+enum hwt_record_type {
+        HWT_RECORD_MMAP,
+        HWT_RECORD_MUNMAP,
+        HWT_RECORD_EXECUTABLE,
+        HWT_RECORD_INTERP,
+        HWT_RECORD_THREAD_CREATE,
+        HWT_RECORD_THREAD_SET_NAME,
+};
+
 struct hwt_record_user_entry {
+	enum hwt_record_type record_type;
 	char fullpath[MAXPATHLEN];
 	uintptr_t addr;
 	size_t size;
+	lwpid_t tid;
 } __aligned(16);
 
 struct hwt_record_get {

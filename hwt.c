@@ -51,7 +51,7 @@
 #define	CHILDSOCKET		1
 #define	NSOCKPAIRFD		2
 
-static struct trace_context *tcs;
+static struct trace_context tcs;
 static int ncpu;
 
 #include "libpmcstat/libpmcstat.h"
@@ -71,20 +71,21 @@ void
 hwt_procexit(pid_t pid, int exit_status)
 {
 	struct trace_context *tc;
-	int i;
 
-	for (i = 0; i < ncpu; i++) {
-		tc = &tcs[i];
-		if (tc->pid == pid)
-			tc->terminate = 1;
-	}
+	tc = &tcs;
+
+	if (tc->pid == pid)
+		tc->terminate = 1;
 }
 
 static int
-hwt_ctx_alloc(int fd, struct trace_context *tc)
+hwt_ctx_alloc(int fd)
 {
+	struct trace_context *tc;
 	struct hwt_alloc al;
 	int error;
+
+	tc = &tcs;
 
 	al.cpu_id = tc->cpu_id;
 	al.pid = tc->pid;
@@ -99,20 +100,20 @@ hwt_ctx_alloc(int fd, struct trace_context *tc)
 }
 
 static int
-hwt_map_memory(struct trace_context *tc)
+hwt_map_memory(struct trace_context *tc, int tid)
 {
 	char filename[32];
-	int fd;
 
-	sprintf(filename, "/dev/hwt_%d_%d", tc->cpu_id, tc->pid);
+	sprintf(filename, "/dev/hwt_%d_%d", tc->pid, tid);
 
-	fd = open(filename, O_RDONLY);
-	if (fd < 0) {
+	tc->thr_fd = open(filename, O_RDONLY);
+	if (tc->thr_fd < 0) {
 		printf("Can't open %s\n", filename);
 		return (-1);
 	}
 
-	tc->base = mmap(NULL, tc->bufsize, PROT_READ, MAP_SHARED, fd, 0);
+	tc->base = mmap(NULL, tc->bufsize, PROT_READ, MAP_SHARED, tc->thr_fd,
+	    0);
 	if (tc->base == MAP_FAILED) {
 		printf("mmap failed: err %d\n", errno);
 		return (-1);
@@ -137,7 +138,7 @@ hwt_get_offs(struct trace_context *tc, size_t *offs)
 	bget.ptr = &ptr;
 	bget.curpage = &curpage;
 	bget.curpage_offset = &curpage_offset;
-	error = ioctl(tc->fd, HWT_IOC_BUFPTR_GET, &bget);
+	error = ioctl(tc->thr_fd, HWT_IOC_BUFPTR_GET, &bget);
 	if (error)
 		return (error);
 
@@ -155,18 +156,16 @@ hwt_get_records(uint32_t *nrec)
 	int tot_records;
 	int nrecords;
 	int error;
-	int i;
+
+	tc = &tcs;
 
 	tot_records = 0;
 
-	for (i = 0; i < ncpu; i++) {
-		tc = &tcs[i];
-		error = hwt_record_fetch(tc, &nrecords);
-		if (error)
-			return (error);
+	error = hwt_record_fetch(tc, &nrecords);
+	if (error)
+		return (error);
 
-		tot_records += nrecords;
-	}
+	tot_records += nrecords;
 
 	*nrec = tot_records;
 
@@ -176,8 +175,8 @@ hwt_get_records(uint32_t *nrec)
 int
 main(int argc, char **argv, char **env)
 {
-	struct pmcstat_process *pp;
 	struct trace_context *tc;
+	struct pmcstat_process *pp;
 	int is_coresight;
 	struct hwt_start s;
 	uint32_t tot_rec;
@@ -193,6 +192,8 @@ main(int argc, char **argv, char **env)
 
 	cmd = argv + 1;
 
+	tc = &tcs;
+
 	error = hwt_elf_count_libs(*cmd, &nlibs);
 	if (error != 0) {
 		printf("could not count libs\n");
@@ -202,8 +203,6 @@ main(int argc, char **argv, char **env)
 	nlibs += 1; /* add binary itself. */
 
 	ncpu = sysconf(_SC_NPROCESSORS_CONF);
-
-	tcs = malloc(sizeof(struct trace_context) * ncpu);
 
 	printf("cmd is %s, nlibs %d\n", *cmd, nlibs);
 
@@ -227,45 +226,55 @@ main(int argc, char **argv, char **env)
 
 	bufsize = 16 * 1024 * 1024;
 
-	for (i = 0; i < ncpu; i++) {
-		tc = &tcs[i];
-		tc->cpu_id = i;
-		tc->pp = pp;
-		tc->pid = pid;
-		tc->fd = fd;
+	tc->cpu_id = 0; /* TODO */
+	tc->pp = pp;
+	tc->pid = pid;
+	tc->fd = fd;
 
-		/* Coresight data is always on tc0 due to funneling by HW. */
-		if (!is_coresight || i == 0)
-			tc->bufsize = bufsize;
-		else
-			tc->bufsize = PAGE_SIZE; /* Just a page. */
+	tc->bufsize = bufsize;
 
-		error = hwt_ctx_alloc(fd, tc);
-		if (error) {
-			printf("%s: failed to alloc ctx, "
-			    "cpu_id %d pid %d error %d\n",
-			    __func__, tc->cpu_id, tc->pid, error);
-			while (1);
+	error = hwt_ctx_alloc(fd);
+	if (error) {
+		printf("%s: failed to alloc ctx, "
+		    "cpu_id %d pid %d error %d\n",
+		    __func__, tc->cpu_id, tc->pid, error);
+		while (1);
 
-			return (error);
-		}
-
-		if (!is_coresight || i == 0) {
-			error = hwt_map_memory(tc);
-			if (error != 0) {
-				printf("can't map memory");
-				return (error);
-			}
-		}
-
-		s.cpu_id = tc->cpu_id;
-		s.pid = tc->pid;
-		error = ioctl(fd, HWT_IOC_START, &s);
-		if (error) {
-			printf("%s: failed to start tracing, error %d\n", __func__, error);
-			return (error);
-		}
+		return (error);
 	}
+
+	printf("Getting records\n");
+
+	error = hwt_get_records(&nrec);
+	if (error != 0)
+		return (error);
+
+	if (nrec != 1)
+		return (error);
+
+	printf("nrec %d (before start)\n", nrec);
+
+	struct hwt_record_user_entry *entry;
+	entry = &tc->records[0];
+	printf("tid %d\n", entry->tid);
+
+	error = hwt_map_memory(tc, entry->tid);
+	if (error != 0) {
+		printf("can't map memory");
+		return (error);
+	}
+
+	printf("starting tracing\n");
+
+	s.cpu_id = tc->cpu_id;
+	s.pid = tc->pid;
+	error = ioctl(fd, HWT_IOC_START, &s);
+	if (error) {
+		printf("%s: failed to start tracing, error %d\n", __func__, error);
+		return (error);
+	}
+
+	printf("tracing started\n");
 
 	error = hwt_process_start(sockpair);
 	if (error != 0)
@@ -283,9 +292,12 @@ main(int argc, char **argv, char **env)
 		tot_rec += nrec;
 	} while (tot_rec < nlibs);
 
-	hwt_coresight_process(tcs);
+	hwt_coresight_process(tc);
+
+	printf("ok\n");
 
 	close(fd);
+	printf("ok1\n");
 
 	return (0);
 }

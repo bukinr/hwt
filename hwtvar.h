@@ -40,6 +40,7 @@ struct trace_context {
 	int cpu_id;
 	int pid;
 	int fd;
+	int thr_fd;
 	int terminate;
 };
 

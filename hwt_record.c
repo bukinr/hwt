@@ -75,12 +75,17 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 
 	error = ioctl(tc->fd, HWT_IOC_RECORD_GET, &record_get);
 	if (error != 0) {
-		printf("RECORD_GET cpuid %d error %d entires %d\n", i, error, nentries);
+		printf("RECORD_GET cpuid %d error %d entires %d\n",
+		    i, error, nentries);
 		return (error);
 	}
 
 	for (j = 0; j < nentries; j++) {
 		entry = &tc->records[j];
+
+		if (entry->record_type > 3) {
+			continue;
+		}
 
 		printf("  lib #%d: path %s addr %lx size %lx\n", j,
 		    entry->fullpath,
