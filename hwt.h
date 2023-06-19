@@ -33,6 +33,8 @@
 #ifndef _DEV_HWT_HWT_H_
 #define _DEV_HWT_HWT_H_
 
+#include "hwt_record.h"
+
 #define	HWT_MAGIC	0x42
 #define	HWT_IOC_ALLOC \
 	_IOW(HWT_MAGIC, 0x00, struct hwt_alloc)
@@ -48,23 +50,12 @@
 struct hwt_alloc {
 	size_t		bufsize;
 	pid_t		pid;
-	int		cpu_id;
 	char		*backend_name;
 } __aligned(16);
 
 struct hwt_start {
 	pid_t		pid;
-	int		cpu_id;
 } __aligned(16);
-
-enum hwt_record_type {
-        HWT_RECORD_MMAP,
-        HWT_RECORD_MUNMAP,
-        HWT_RECORD_EXECUTABLE,
-        HWT_RECORD_INTERP,
-        HWT_RECORD_THREAD_CREATE,
-        HWT_RECORD_THREAD_SET_NAME,
-};
 
 struct hwt_record_user_entry {
 	enum hwt_record_type record_type;
@@ -77,7 +68,6 @@ struct hwt_record_user_entry {
 struct hwt_record_get {
 	struct hwt_record_user_entry	*records;
 	int				*nentries;
-	int				cpu_id;
 	pid_t				pid;
 } __aligned(16);
 
@@ -85,7 +75,6 @@ struct hwt_bufptr_get {
 	int		*ptr;
 	int		*curpage;
 	vm_offset_t	*curpage_offset;
-	int		cpu_id;
 	pid_t		pid;
 } __aligned(16);
 

@@ -87,7 +87,6 @@ hwt_ctx_alloc(int fd)
 
 	tc = &tcs;
 
-	al.cpu_id = tc->cpu_id;
 	al.pid = tc->pid;
 	al.bufsize = tc->bufsize;
 	al.backend_name = "coresight";
@@ -133,7 +132,6 @@ hwt_get_offs(struct trace_context *tc, size_t *offs)
 	int error;
 	int ptr;
 
-	bget.cpu_id = tc->cpu_id;
 	bget.pid = tc->pid;
 	bget.ptr = &ptr;
 	bget.curpage = &curpage;
@@ -175,9 +173,9 @@ hwt_get_records(uint32_t *nrec)
 int
 main(int argc, char **argv, char **env)
 {
-	struct trace_context *tc;
+	struct hwt_record_user_entry *entry;
 	struct pmcstat_process *pp;
-	int is_coresight;
+	struct trace_context *tc;
 	struct hwt_start s;
 	uint32_t tot_rec;
 	uint32_t nrec;
@@ -222,8 +220,6 @@ main(int argc, char **argv, char **env)
 	pp->pp_pid = pid;
 	pp->pp_isactive = 1;
 
-	is_coresight = 1; /* TODO */
-
 	bufsize = 16 * 1024 * 1024;
 
 	tc->cpu_id = 0; /* TODO */
@@ -243,8 +239,6 @@ main(int argc, char **argv, char **env)
 		return (error);
 	}
 
-	printf("Getting records\n");
-
 	error = hwt_get_records(&nrec);
 	if (error != 0)
 		return (error);
@@ -252,11 +246,7 @@ main(int argc, char **argv, char **env)
 	if (nrec != 1)
 		return (error);
 
-	printf("nrec %d (before start)\n", nrec);
-
-	struct hwt_record_user_entry *entry;
 	entry = &tc->records[0];
-	printf("tid %d\n", entry->tid);
 
 	error = hwt_map_memory(tc, entry->tid);
 	if (error != 0) {
@@ -266,22 +256,19 @@ main(int argc, char **argv, char **env)
 
 	printf("starting tracing\n");
 
-	s.cpu_id = tc->cpu_id;
 	s.pid = tc->pid;
 	error = ioctl(fd, HWT_IOC_START, &s);
 	if (error) {
-		printf("%s: failed to start tracing, error %d\n", __func__, error);
+		printf("%s: failed to start tracing, error %d\n", __func__,
+		    error);
 		return (error);
 	}
-
-	printf("tracing started\n");
 
 	error = hwt_process_start(sockpair);
 	if (error != 0)
 		return (error);
 
 	printf("nlibs %d\n", nlibs);
-	//return (0);
 
 	tot_rec = 0;
 
@@ -294,10 +281,9 @@ main(int argc, char **argv, char **env)
 
 	hwt_coresight_process(tc);
 
-	printf("ok\n");
-
 	close(fd);
-	printf("ok1\n");
+
+	//while (1);
 
 	return (0);
 }

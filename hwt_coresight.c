@@ -532,16 +532,14 @@ hwt_coresight_init(struct trace_context *tc)
 }
 
 int
-hwt_coresight_process(struct trace_context *tcs)
+hwt_coresight_process(struct trace_context *tc)
 {
-	struct trace_context *tc;
 	size_t start;
 	size_t end;
 	size_t offs;
 	int error;
 
 	/* Coresight data is always on CPU0 due to funnelling by HW. */
-	tc = &tcs[0];
 
 	hwt_coresight_init(tc);
 
