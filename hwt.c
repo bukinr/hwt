@@ -204,17 +204,17 @@ main(int argc, char **argv, char **env)
 
 	printf("cmd is %s, nlibs %d\n", *cmd, nlibs);
 
-	error = hwt_process_create(sockpair, cmd, env, &pid);
-	if (error != 0)
-		return (error);
-
-	printf("%s: process pid %d created\n", __func__, pid);
-
 	fd = open("/dev/hwt", O_RDWR);
 	if (fd < 0) {
 		printf("Can't open /dev/hwt\n");
 		return (-1);
 	}
+
+	error = hwt_process_create(sockpair, cmd, env, &pid);
+	if (error != 0)
+		return (error);
+
+	printf("%s: process pid %d created\n", __func__, pid);
 
 	pp = hwt_process_alloc();
 	pp->pp_pid = pid;
@@ -222,7 +222,6 @@ main(int argc, char **argv, char **env)
 
 	bufsize = 16 * 1024 * 1024;
 
-	tc->cpu_id = 0; /* TODO */
 	tc->pp = pp;
 	tc->pid = pid;
 	tc->fd = fd;
@@ -231,9 +230,9 @@ main(int argc, char **argv, char **env)
 
 	error = hwt_ctx_alloc(fd);
 	if (error) {
-		printf("%s: failed to alloc ctx, "
-		    "cpu_id %d pid %d error %d\n",
-		    __func__, tc->cpu_id, tc->pid, error);
+		printf("%s: failed to alloc ctx, pid %d error %d\n", __func__,
+		    tc->pid, error);
+
 		while (1);
 
 		return (error);
