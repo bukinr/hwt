@@ -27,8 +27,6 @@
  * SUCH DAMAGE.
  */
 
-#include "libpmcstat/libpmcstat.h"
-
 #ifndef	_HWTVAR_H_
 #define	_HWTVAR_H_
 

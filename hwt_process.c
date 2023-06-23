@@ -47,7 +47,8 @@
 #include "hwt.h"
 #include "hwtvar.h"
 
-#include "libpmcstat/libpmcstat.h"
+#include "libpmcstat_stubs.h"
+#include <libpmcstat.h>
 
 struct pmcstat_image_hash_list pmcstat_image_hash[PMCSTAT_NHASH];
 

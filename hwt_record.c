@@ -44,7 +44,8 @@
 #include "hwt.h"
 #include "hwtvar.h"
 
-#include "libpmcstat/libpmcstat.h"
+#include "libpmcstat_stubs.h"
+#include <libpmcstat.h>
 
 int
 hwt_record_fetch(struct trace_context *tc, int *nrecords)

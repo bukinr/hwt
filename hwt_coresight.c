@@ -52,7 +52,8 @@
 #include "hwtvar.h"
 #include "hwt_coresight.h"
 
-#include "libpmcstat/libpmcstat.h"
+#include "libpmcstat_stubs.h"
+#include <libpmcstat.h>
 
 #define	PMCTRACE_CS_DEBUG
 //#undef	PMCTRACE_CS_DEBUG
@@ -241,6 +242,8 @@ create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
 	if (ret != OCSD_OK)
 		return (-1);
 
+	printf("%s: CSID %d\n", __func__, CSID);
+
 	if (cs_flags & FLAG_FORMAT) {
 		ret = ocsd_dt_attach_packet_callback(handle, CSID,
 		    OCSD_C_API_CB_PKT_MON, packet_monitor, p_context);
@@ -267,7 +270,7 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 
 	trace_config.reg_configr = 0x00001fc6;
 	trace_config.reg_configr = 0x000000C1;
-	trace_config.reg_traceidr = 0x00000010;   /* Trace ID */
+	trace_config.reg_traceidr = 0x00000001;	/* Trace ID */
 
 	trace_config.reg_idr0   = 0x28000ea1;
 	trace_config.reg_idr1   = 0x4100f424;
@@ -321,10 +324,19 @@ cs_process_chunk(struct trace_context *tc, size_t start, size_t end)
 			    &bytes_this_time);
 			bytes_done += bytes_this_time;
 			dprintf("BYTES DONE %d\n", bytes_done);
+			if (OCSD_DATA_RESP_IS_WAIT(dp_ret)) {
+printf("wait");
+				exit(12);
+			}
+
 		} else if (OCSD_DATA_RESP_IS_WAIT(dp_ret)) {
+printf("WAIT");
+exit(5);
 			dp_ret = ocsd_dt_process_data(dcdtree_handle,
 			    OCSD_OP_FLUSH, 0, 0, NULL, NULL);
 		} else {
+printf("FATAL");
+exit(6);
 			ret = OCSD_ERR_DATA_DECODE_FATAL;
 		}
 	}
@@ -507,6 +519,8 @@ hwt_coresight_init(struct trace_context *tc)
 	}
 
 	//cs_flags |= FLAG_FORMAT;
+	//cs_flags |= FLAG_FRAME_RAW_UNPACKED;
+	//cs_flags |= FLAG_FRAME_RAW_PACKED;
 
 	error = create_decoder_etmv4(dcdtree_handle, tc);
 	if (error != OCSD_OK) {
@@ -542,6 +556,7 @@ hwt_coresight_process(struct trace_context *tc)
 	hwt_coresight_init(tc);
 
 	error = hwt_get_offs(tc, &offs);
+printf("OFFS %ld\n", offs);
 	if (error)
 		return (-1);
 
@@ -552,11 +567,18 @@ hwt_coresight_process(struct trace_context *tc)
 
 	cs_process_chunk(tc, start, end);
 
+	int t;
+
+	t = 0;
+
 	while (1) {
-		if (tc->terminate)
+		hwt_sleep();
+
+		if (tc->terminate && t++ > 2)
 			break;
 
 		error = hwt_get_offs(tc, &offs);
+printf("OFFS %ld, err %d\n", offs, error);
 		if (error)
 			return (-1);
 

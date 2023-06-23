@@ -3,12 +3,9 @@ OBJS += hwt_elf.o
 OBJS += hwt_process.o
 OBJS += hwt_record.o
 OBJS += hwt.o
-OBJS += libpmcstat_image.o
-OBJS += libpmcstat_string.o
-OBJS += libpmcstat_symbol.o
+OBJS += libpmcstat_stubs.o
 
-LIBS += -lc++ -lc -lelf
-LIBS += -lopencsd
+LIBS += -lc++ -lc -lelf -lopencsd -lpmcstat
 
 all:
 	cc -c ${.CURDIR}/hwt_coresight.c -o hwt_coresight.o
@@ -16,9 +13,7 @@ all:
 	cc -c ${.CURDIR}/hwt_record.c -o hwt_record.o
 	cc -c ${.CURDIR}/hwt_elf.c -o hwt_elf.o
 	cc -c ${.CURDIR}/hwt.c -o hwt.o
-	cc -c ${.CURDIR}/libpmcstat/libpmcstat_image.c -o libpmcstat_image.o
-	cc -c ${.CURDIR}/libpmcstat/libpmcstat_string.c -o libpmcstat_string.o
-	cc -c ${.CURDIR}/libpmcstat/libpmcstat_symbol.c -o libpmcstat_symbol.o
+	cc -c ${.CURDIR}/libpmcstat_stubs.c -o libpmcstat_stubs.o
 
 	cc ${LIBS} ${OBJS} -o ${.CURDIR}/hwt
 
