@@ -43,4 +43,10 @@ enum pmc_mode {
 typedef int	pmc_id_t;
 typedef int	pmc_value_t;
 
+struct pmclog_ev;
+
+int pmclog_read(void *cookie __unused, struct pmclog_ev *ev __unused);
+int pmc_close_logfile(void);
+int pmc_attach(pmc_id_t pmc __unused, pid_t pid __unused);
+
 #endif	/* !_HWT_LIBPMCSTAT_STUBS_H_ */

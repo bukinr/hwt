@@ -60,7 +60,6 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 	int nentries;
 	int error;
 	int j;
-	int i;
 
 	memset(&plugins, 0, sizeof(struct pmc_plugins));
 	memset(&args, 0, sizeof(struct pmcstat_args));
@@ -75,8 +74,8 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 
 	error = ioctl(tc->fd, HWT_IOC_RECORD_GET, &record_get);
 	if (error != 0) {
-		printf("RECORD_GET cpuid %d error %d entires %d\n",
-		    i, error, nentries);
+		printf("RECORD_GET error %d entires %d\n",
+		    error, nentries);
 		return (error);
 	}
 

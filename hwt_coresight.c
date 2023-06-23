@@ -175,6 +175,7 @@ packet_monitor(void *context __unused,
 	}
 }
 
+#if 0
 static uint32_t
 cs_decoder__mem_access(const void *context __unused,
     const ocsd_vaddr_t address __unused,
@@ -186,6 +187,7 @@ cs_decoder__mem_access(const void *context __unused,
 
 	return (0);
 }
+#endif
 
 static ocsd_err_t
 create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
@@ -211,7 +213,7 @@ create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 		t = (uint64_t *)tc->base;
 		printf("%lx %lx %lx %lx\n", t[0], t[1], t[2], t[3]);
 
-		p_mem_buffer = (uint8_t *)(tc->base + 0);
+		p_mem_buffer = (uint8_t *)tc->base;
 		mem_length = tc->bufsize;
 
 		ret = ocsd_dt_add_buffer_mem_acc(handle, address,
@@ -306,7 +308,7 @@ cs_process_chunk(struct trace_context *tc, size_t start, size_t end)
 	block_index = start;
 	bytes_done = 0;
 	block_size = end - start;
-	p_block = (uint8_t *)(tc->base + start);
+	p_block = (uint8_t *)((uintptr_t)tc->base + start);
 
 	ret = OCSD_OK;
 	dp_ret = OCSD_RESP_CONT;
@@ -362,8 +364,8 @@ pmcstat_process_find_map(struct pmcstat_process *p, uintfptr_t pc)
 }
 
 static struct pmcstat_symbol *
-symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img,
-    uint64_t *newpc0)
+symbol_lookup(const struct trace_context *tc, uint64_t ip,
+    struct pmcstat_image **img, uint64_t *newpc0)
 {
 	struct pmcstat_image *image;
 	struct pmcstat_symbol *sym;
@@ -395,15 +397,15 @@ gen_trace_elem_print_lookup(const void *p_context,
     const uint8_t trc_chan_id __unused,
     const ocsd_generic_trace_elem *elem)
 {
+	const struct trace_context *tc;
 	struct pmcstat_image *image;
-	struct trace_context *tc;
 	ocsd_datapath_resp_t resp;
 	struct pmcstat_symbol *sym;
 	unsigned long offset;
 	uint64_t newpc;
 	uint64_t ip;
 
-	tc = (struct trace_context *)p_context;
+	tc = (const struct trace_context *)p_context;
 
 	resp = OCSD_RESP_CONT;
 
@@ -413,13 +415,13 @@ gen_trace_elem_print_lookup(const void *p_context,
 	    elem->st_addr, elem->en_addr);
 #endif
 
-#if 1
+#if 0
 	if (elem->st_addr == -1)
 		return (resp);
+#endif
 
 	if (elem->st_addr == 0)
 		return (resp);
-#endif
 	ip = elem->st_addr;
 
 	sym = symbol_lookup(tc, ip, &image, &newpc);
@@ -506,7 +508,6 @@ gen_trace_elem_print_lookup(const void *p_context,
 int
 hwt_coresight_init(struct trace_context *tc)
 {
-	uintptr_t start, end;
 	int error;
 
 	ocsd_def_errlog_init(OCSD_ERR_SEV_INFO, 1);

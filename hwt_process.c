@@ -78,7 +78,7 @@ hwt_process_onsig(int signo)
 }
 
 int
-hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0)
+hwt_process_create(int *sockpair, char **cmd, char **env __unused, int *pid0)
 {
 	char token;
 	pid_t pid;

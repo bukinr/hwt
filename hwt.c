@@ -69,7 +69,7 @@ hwt_sleep(void)
 }
 
 void
-hwt_procexit(pid_t pid, int exit_status)
+hwt_procexit(pid_t pid, int exit_status __unused)
 {
 	struct trace_context *tc;
 
@@ -148,7 +148,7 @@ hwt_get_offs(struct trace_context *tc, size_t *offs)
 	return (0);
 }
 
-int
+static int
 hwt_get_records(uint32_t *nrec)
 {
 	struct trace_context *tc;
@@ -172,7 +172,7 @@ hwt_get_records(uint32_t *nrec)
 }
 
 int
-main(int argc, char **argv, char **env)
+main(int argc __unused, char **argv, char **env)
 {
 	struct hwt_record_user_entry *entry;
 	struct pmcstat_process *pp;
@@ -180,11 +180,10 @@ main(int argc, char **argv, char **env)
 	struct hwt_start s;
 	uint32_t tot_rec;
 	uint32_t nrec;
+	uint32_t nlibs;
 	char **cmd;
-	int nlibs;
 	int error;
 	int fd;
-	int i;
 	int sockpair[NSOCKPAIRFD];
 	int pid;
 	size_t bufsize;

@@ -33,12 +33,11 @@
 
 /* This is a stub file, needed for compilation only. */
 
-struct pmclog_ev;
 struct pmcstat_pmcs pmcstat_pmcs;
 struct pmcstat_process_hash_list pmcstat_process_hash[PMCSTAT_NHASH];
 
 int
-pmclog_read(void *cookie, struct pmclog_ev *ev)
+pmclog_read(void *cookie __unused, struct pmclog_ev *ev __unused)
 {
 
 	return (-1);
@@ -52,7 +51,7 @@ pmc_close_logfile(void)
 }
 
 int
-pmc_attach(pmc_id_t pmc, pid_t pid)
+pmc_attach(pmc_id_t pmc __unused, pid_t pid __unused)
 {
 
 	return (-1);

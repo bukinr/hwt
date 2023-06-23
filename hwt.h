@@ -50,7 +50,7 @@
 struct hwt_alloc {
 	size_t		bufsize;
 	pid_t		pid;
-	char		*backend_name;
+	const char	*backend_name;
 } __aligned(16);
 
 struct hwt_start {
