@@ -55,7 +55,6 @@
 #define	NSOCKPAIRFD		2
 
 static struct trace_context tcs;
-static int ncpu;
 
 void
 hwt_sleep(void)
@@ -119,6 +118,16 @@ hwt_map_memory(struct trace_context *tc, int tid)
 	printf("%s: tc->base %#p\n", __func__, tc->base);
 
 	return (0);
+}
+
+static int __unused
+hwt_ncpu(void)
+{
+	int ncpu;
+
+	ncpu = sysconf(_SC_NPROCESSORS_CONF);
+
+	return (ncpu);
 }
 
 size_t
@@ -206,10 +215,8 @@ main(int argc, char **argv, char **env)
 	uint32_t nlibs;
 	char **cmd;
 	int error;
-	int fd;
 	int sockpair[NSOCKPAIRFD];
 	int pid;
-	size_t bufsize;
 	int option;
 	int i;
 
@@ -252,12 +259,10 @@ main(int argc, char **argv, char **env)
 
 	nlibs += 1; /* add binary itself. */
 
-	ncpu = sysconf(_SC_NPROCESSORS_CONF);
-
 	printf("cmd is %s, nlibs %d\n", *cmd, nlibs);
 
-	fd = open("/dev/hwt", O_RDWR);
-	if (fd < 0) {
+	tc->fd = open("/dev/hwt", O_RDWR);
+	if (tc->fd < 0) {
 		printf("Can't open /dev/hwt\n");
 		return (-1);
 	}
@@ -272,12 +277,9 @@ main(int argc, char **argv, char **env)
 	pp->pp_pid = pid;
 	pp->pp_isactive = 1;
 
-	bufsize = 16 * 1024 * 1024;
-
 	tc->pp = pp;
 	tc->pid = pid;
-	tc->fd = fd;
-	tc->bufsize = bufsize;
+	tc->bufsize = 16 * 1024 * 1024;
 
 	error = hwt_ctx_alloc(tc);
 	if (error) {
@@ -335,7 +337,7 @@ main(int argc, char **argv, char **env)
 
 	hwt_coresight_process(tc);
 
-	close(fd);
+	close(tc->fd);
 
 	return (0);
 }
