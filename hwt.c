@@ -171,6 +171,24 @@ hwt_get_records(uint32_t *nrec)
 	return (0);
 }
 
+static int
+hwt_find_sym(struct trace_context *tc)
+{
+	struct pmcstat_symbol *sym;
+	uintptr_t addr_start;
+	uintptr_t addr_end;
+
+	sym = pmcstat_symbol_search_by_name(tc->pp, tc->image_name,
+	    tc->func_name, &addr_start, &addr_end);
+	if (sym) {
+		printf("sym found, start end %lx %lx\n", (uint64_t)addr_start,
+		    (uint64_t)addr_end);
+		return (0);
+	}
+
+	return (ENOENT);
+}
+
 int
 main(int argc, char **argv, char **env)
 {
@@ -188,26 +206,37 @@ main(int argc, char **argv, char **env)
 	int pid;
 	size_t bufsize;
 	int option;
-	int thread_id;
 	int i;
 
-	thread_id = 0;
+	memset(&tcs, 0, sizeof(struct trace_context));
+	tc = &tcs;
 
-	while ((option = getopt(argc, argv, "t:")) != -1)
+	while ((option = getopt(argc, argv, "t:i:f:")) != -1)
 		switch (option) {
+		case 'i':
+			tc->image_name = strdup(optarg);
+			break;
+		case 'f':
+			tc->func_name = strdup(optarg);
+			break;
 		case 't':
-			thread_id = atoi(optarg);
+			tc->thread_id = atoi(optarg);
+			break;
 		default:
 			break;
 		}
+
+	if ((tc->image_name == NULL && tc->func_name != NULL) ||
+	    (tc->image_name != NULL && tc->func_name == NULL)) {
+		printf("For address range tracing specify both image and func,"
+		    " or none of them.\n");
+		exit(1);
+	}
 
 	argv += optind;
 	argc += optind;
 
 	cmd = argv;
-
-	tc = &tcs;
-	tc->thread_id = thread_id;
 
 	error = hwt_elf_count_libs(*cmd, &nlibs);
 	if (error != 0) {
@@ -294,6 +323,9 @@ main(int argc, char **argv, char **env)
 			return (error);
 		tot_rec += nrec;
 	} while (tot_rec < nlibs);
+
+	if (tc->func_name)
+		hwt_find_sym(tc);
 
 	hwt_coresight_process(tc);
 

@@ -40,6 +40,10 @@ struct trace_context {
 	int thr_fd;
 	int terminate;
 	int thread_id;
+
+	/* Address range filtering. */
+	char *image_name;
+	char *func_name;
 };
 
 struct pmcstat_process *hwt_process_alloc(void);
