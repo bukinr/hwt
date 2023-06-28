@@ -42,6 +42,7 @@ struct trace_context {
 	int thread_id;
 
 	/* Address range filtering. */
+	int pause_on_mmap_once;
 	char *image_name;
 	char *func_name;
 };

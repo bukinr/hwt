@@ -315,6 +315,9 @@ main(int argc, char **argv, char **env)
 			    __func__, error);
 			return (error);
 		}
+	} else {
+		tc->pause_on_mmap_once = 1;
+		/* TODO: configure pause on mmap. */
 	}
 
 	error = hwt_process_start(sockpair);
