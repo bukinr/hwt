@@ -20,5 +20,7 @@ main(void)
 	error = pthread_create(&thread, NULL, test_thread, NULL);
 	printf("error %d\n", error);
 
+	pthread_join(thread, NULL);
+
 	return (0);
 }
