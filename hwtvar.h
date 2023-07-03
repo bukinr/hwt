@@ -45,6 +45,9 @@ struct trace_context {
 	int pause_on_mmap_once;
 	char *image_name;
 	char *func_name;
+
+	/* Backend-specific config. */
+	void *config;
 };
 
 struct pmcstat_process *hwt_process_alloc(void);

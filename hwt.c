@@ -300,6 +300,12 @@ main(int argc, char **argv, char **env)
 		return (error);
 	}
 
+	error = hwt_coresight_set_config(tc);
+	if (error != 0) {
+		printf("can't set config");
+		return (error);
+	}
+
 	if (tc->func_name == NULL) {
 		/* No address range filtering. Start tracing immediately. */
 
