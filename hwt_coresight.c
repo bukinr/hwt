@@ -536,10 +536,12 @@ hwt_coresight_init(struct trace_context *tc)
 }
 
 void
-hwt_coresight_fill_config(struct etmv4_config *config)
+hwt_coresight_fill_config(struct trace_context *tc, struct etmv4_config *config)
 {
-	uint32_t reg;
 	int excp_level;
+	uint32_t reg;
+	uint32_t val;
+	int i;
 
 	memset(config, 0, sizeof(struct etmv4_config));
 
@@ -559,6 +561,20 @@ hwt_coresight_fill_config(struct etmv4_config *config)
 	reg |= TRCVICTLR_EXLEVEL_NS(excp_level);
 	reg |= TRCVICTLR_EXLEVEL_S(excp_level);
 	config->vinst_ctrl = reg;
+
+	/* Address-range filtering. */
+	val = 0;
+	for (i = 0; i < tc->nranges * 2; i++) {
+		config->addr_val[i] = tc->addr_ranges[i];
+
+		reg = TRCACATR_EXLEVEL_S(excp_level);
+		reg |= TRCACATR_EXLEVEL_NS(excp_level);
+		config->addr_acc[i] = reg;
+
+		/* Include the range ID. */
+		val |= (1 << (TRCVIIECTLR_INCLUDE_S + i / 2));
+	}
+	config->viiectlr = val;
 }
 
 int
@@ -569,7 +585,7 @@ hwt_coresight_set_config(struct trace_context *tc)
 	int error;
 
 	config = malloc(sizeof(struct etmv4_config));
-	hwt_coresight_fill_config(config);
+	hwt_coresight_fill_config(tc, config);
 
 	tc->config = config;
 

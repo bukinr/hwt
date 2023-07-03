@@ -30,6 +30,8 @@
 #ifndef	_HWTVAR_H_
 #define	_HWTVAR_H_
 
+#define	TC_MAX_ADDR_RANGES	16
+
 struct trace_context {
 	struct pmcstat_process *pp;
 	struct hwt_record_user_entry *records;
@@ -45,6 +47,8 @@ struct trace_context {
 	int pause_on_mmap_once;
 	char *image_name;
 	char *func_name;
+	uintptr_t addr_ranges[TC_MAX_ADDR_RANGES * 2];
+	int nranges;
 
 	/* Backend-specific config. */
 	void *config;
