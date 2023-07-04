@@ -126,6 +126,7 @@ printf("%s: error %d: nent %d\n", __func__, error, nentries);
 						error = hwt_start_tracing(tc);
 						if (error)
 							return (-1);
+						printf("%s: tracing started\n", __func__);
 					}
 				error = kill(tc->pid, SIGCONT);
 				printf("kill ret %d\n", error);

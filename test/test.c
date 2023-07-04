@@ -27,10 +27,10 @@ main(void)
 	int error;
 
 	error = strcmp("a", "b");
-	printf("error %d\n", error);
+	printf("strcmp returned %d\n", error);
 
 	error = pthread_create(&thread, NULL, test_thread, NULL);
-	printf("error %d\n", error);
+	printf("pthread_create returned %d\n", error);
 
 	pthread_join(thread, NULL);
 

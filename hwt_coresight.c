@@ -510,7 +510,7 @@ hwt_coresight_init(struct trace_context *tc)
 		return (-1);
 	}
 
-	cs_flags |= FLAG_FORMAT;
+	//cs_flags |= FLAG_FORMAT;
 	//cs_flags |= FLAG_FRAME_RAW_UNPACKED;
 	//cs_flags |= FLAG_FRAME_RAW_PACKED;
 
