@@ -1,12 +1,16 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <string.h>
 
 static void *
 test_thread(void *arg __unused)
 {
+	int len;
 
-	printf("Hello world from thread\n");
+	len = strlen("capabilities");
+
+	printf("Hello world from thread, strlen %d\n", len);
 
 	return (NULL);
 }
