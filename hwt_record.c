@@ -44,6 +44,7 @@
 #include <string.h>
 
 #include "hwtvar.h"
+#include "hwt_coresight.h"
 
 #include "libpmcstat_stubs.h"
 #include <libpmcstat.h>
@@ -80,6 +81,8 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 		return (error);
 	}
 
+printf("%s: error %d: nent %d\n", __func__, error, nentries);
+
 	for (j = 0; j < nentries; j++) {
 		entry = &tc->records[j];
 
@@ -111,8 +114,22 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 			    (unsigned long)image->pi_entry);
 #endif
 			if (tc->pause_on_mmap_once) {
+				if (tc->func_name) {
+					error = hwt_find_sym(tc);
+					if (error == 0) {
+						tc->pause_on_mmap_once = 0;
+
+						/* Start tracing. */
+						error = hwt_coresight_set_config(tc);
+						if (error)
+							return (-1);
+						error = hwt_start_tracing(tc);
+						if (error)
+							return (-1);
+					}
 				error = kill(tc->pid, SIGCONT);
 				printf("kill ret %d\n", error);
+				}
 			}
 			break;
 		case HWT_RECORD_THREAD_CREATE:

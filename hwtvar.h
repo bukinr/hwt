@@ -62,5 +62,7 @@ void hwt_procexit(pid_t pid, int status);
 size_t hwt_get_offs(struct trace_context *tc, size_t *offs);
 void hwt_sleep(void);
 int hwt_elf_count_libs(const char *elf_path, uint32_t *nlibs0);
+int hwt_find_sym(struct trace_context *tc);
+int hwt_start_tracing(struct trace_context *tc);
 
 #endif /* !_HWTVAR_H_ */

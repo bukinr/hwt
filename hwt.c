@@ -169,7 +169,7 @@ hwt_get_records(struct trace_context *tc, uint32_t *nrec)
 	return (0);
 }
 
-static int
+int
 hwt_find_sym(struct trace_context *tc)
 {
 	struct pmcstat_symbol *sym;
@@ -181,13 +181,16 @@ hwt_find_sym(struct trace_context *tc)
 	if (sym) {
 		printf("sym found, start end %lx %lx\n", (uint64_t)addr_start,
 		    (uint64_t)addr_end);
+		tc->addr_ranges[tc->nranges] = addr_start;
+		tc->addr_ranges[tc->nranges + 1] = addr_end;
+		tc->nranges += 1;
 		return (0);
 	}
 
 	return (ENOENT);
 }
 
-static int
+int
 hwt_start_tracing(struct trace_context *tc)
 {
 	struct hwt_start s;
