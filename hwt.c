@@ -333,6 +333,7 @@ main(int argc, char **argv, char **env)
 		if (error != 0)
 			return (error);
 		tot_rec += nrec;
+		hwt_sleep();
 	} while (tot_rec < nlibs);
 
 	if (tc->func_name)
