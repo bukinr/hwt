@@ -44,7 +44,7 @@ struct trace_context {
 	int thread_id;
 
 	/* Address range filtering. */
-	int pause_on_mmap_once;
+	int suspend_on_mmap;
 	char *image_name;
 	char *func_name;
 	uintptr_t addr_ranges[TC_MAX_ADDR_RANGES * 2];

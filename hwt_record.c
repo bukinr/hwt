@@ -113,11 +113,11 @@ printf("%s: error %d: nent %d\n", __func__, error, nentries);
 			    (unsigned long)image->pi_start,
 			    (unsigned long)image->pi_entry);
 #endif
-			if (tc->pause_on_mmap_once) {
+			if (tc->suspend_on_mmap) {
 				if (tc->func_name) {
 					error = hwt_find_sym(tc);
 					if (error == 0) {
-						tc->pause_on_mmap_once = 0;
+						tc->suspend_on_mmap = 0;
 
 						/* Start tracing. */
 						error = hwt_coresight_set_config(tc);

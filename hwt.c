@@ -301,7 +301,7 @@ main(int argc, char **argv, char **env)
 	}
 
 	if (tc->func_name != NULL)
-		tc->pause_on_mmap_once = 1;
+		tc->suspend_on_mmap = 1;
 
 	error = hwt_coresight_set_config(tc);
 	if (error != 0) {

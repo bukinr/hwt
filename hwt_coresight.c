@@ -510,7 +510,7 @@ hwt_coresight_init(struct trace_context *tc)
 		return (-1);
 	}
 
-	//cs_flags |= FLAG_FORMAT;
+	cs_flags |= FLAG_FORMAT;
 	//cs_flags |= FLAG_FRAME_RAW_UNPACKED;
 	//cs_flags |= FLAG_FRAME_RAW_PACKED;
 
@@ -593,7 +593,7 @@ hwt_coresight_set_config(struct trace_context *tc)
 	sconf.config = config;
 	sconf.config_size = sizeof(struct etmv4_config);
 	sconf.config_version = 1;
-	sconf.pause_on_mmap = tc->pause_on_mmap_once ? 1 : 0;
+	sconf.pause_on_mmap = tc->suspend_on_mmap ? 1 : 0;
 
 	error = ioctl(tc->fd, HWT_IOC_SET_CONFIG, &sconf);
 
