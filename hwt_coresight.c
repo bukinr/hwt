@@ -593,6 +593,7 @@ hwt_coresight_set_config(struct trace_context *tc)
 	sconf.config = config;
 	sconf.config_size = sizeof(struct etmv4_config);
 	sconf.config_version = 1;
+	sconf.pause_on_mmap = tc->pause_on_mmap_once ? 1 : 0;
 
 	error = ioctl(tc->fd, HWT_IOC_SET_CONFIG, &sconf);
 

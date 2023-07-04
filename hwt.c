@@ -279,9 +279,6 @@ main(int argc, char **argv, char **env)
 	if (error) {
 		printf("%s: failed to alloc ctx, pid %d error %d\n", __func__,
 		    tc->pid, error);
-
-		while (1);
-
 		return (error);
 	}
 
@@ -300,6 +297,9 @@ main(int argc, char **argv, char **env)
 		return (error);
 	}
 
+	if (tc->func_name != NULL)
+		tc->pause_on_mmap_once = 1;
+
 	error = hwt_coresight_set_config(tc);
 	if (error != 0) {
 		printf("can't set config");
@@ -308,16 +308,12 @@ main(int argc, char **argv, char **env)
 
 	if (tc->func_name == NULL) {
 		/* No address range filtering. Start tracing immediately. */
-
 		error = hwt_start_tracing(tc);
 		if (error) {
 			printf("%s: failed to start tracing, error %d\n",
 			    __func__, error);
 			return (error);
 		}
-	} else {
-		tc->pause_on_mmap_once = 1;
-		/* TODO: configure pause on mmap. */
 	}
 
 	error = hwt_process_start(sockpair);
