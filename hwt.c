@@ -335,9 +335,6 @@ main(int argc, char **argv, char **env)
 		hwt_sleep();
 	} while (tot_rec < nlibs);
 
-	if (tc->func_name)
-		hwt_find_sym(tc);
-
 	hwt_coresight_process(tc);
 
 	close(tc->fd);
