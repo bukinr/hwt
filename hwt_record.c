@@ -113,25 +113,7 @@ printf("%s: error %d: nent %d\n", __func__, error, nentries);
 			    (unsigned long)image->pi_start,
 			    (unsigned long)image->pi_entry);
 #endif
-			if (tc->suspend_on_mmap) {
-				if (tc->func_name) {
-					error = hwt_find_sym(tc);
-					if (error == 0) {
-						tc->suspend_on_mmap = 0;
-
-						/* Start tracing. */
-						error = hwt_coresight_set_config(tc);
-						if (error)
-							return (-1);
-						error = hwt_start_tracing(tc);
-						if (error)
-							return (-1);
-						printf("%s: tracing started\n", __func__);
-					}
-				error = kill(tc->pid, SIGCONT);
-				printf("kill ret %d\n", error);
-				}
-			}
+			hwt_mmap_received(tc);
 			break;
 		case HWT_RECORD_THREAD_CREATE:
 		case HWT_RECORD_THREAD_SET_NAME:

@@ -79,6 +79,51 @@ hwt_procexit(pid_t pid, int exit_status __unused)
 }
 
 static int
+hwt_unsuspend_proc(struct trace_context *tc)
+{
+	int error;
+
+	error = kill(tc->pid, SIGCONT);
+
+	return (error);
+}
+
+int
+hwt_mmap_received(struct trace_context *tc)
+{
+	int error;
+
+	if (!tc->suspend_on_mmap)
+		return (0);
+
+	if (tc->func_name == NULL)
+		return (0);
+
+	error = hwt_find_sym(tc);
+	if (error != 0) {
+		hwt_unsuspend_proc(tc);
+		return (-1);
+	}
+
+	tc->suspend_on_mmap = 0;
+
+	/* Start tracing. */
+	error = hwt_coresight_set_config(tc);
+	if (error)
+		return (-2);
+
+	error = hwt_start_tracing(tc);
+	if (error)
+		return (-2);
+
+	printf("%s: tracing started\n", __func__);
+
+	hwt_unsuspend_proc(tc);
+
+	return (0);
+}
+
+static int
 hwt_ctx_alloc(struct trace_context *tc)
 {
 	struct hwt_alloc al;
