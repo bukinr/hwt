@@ -327,6 +327,11 @@ main(int argc, char **argv, char **env)
 
 	tot_rec = 0;
 
+	/*
+	 * Ensure we got expected amount of mmap/interp records so that
+	 * mapping tables constructed before we do symbol lookup.
+	 */
+
 	do {
 		error = hwt_get_records(tc, &nrec);
 		if (error != 0)
