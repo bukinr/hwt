@@ -296,62 +296,42 @@ create_decoder_etmv4(struct trace_context *tc, dcd_tree_handle_t dcd_tree_h)
 }
 
 static int
-cs_process_chunk(struct trace_context *tc, struct cs_decoder *dec,
-    size_t start, size_t len, size_t *consumed)
+cs_process_chunk_raw(struct trace_context *tc, size_t start, size_t len,
+    uint32_t *consumed)
 {
-	uint32_t bytes_done;
-	uint8_t *p_block;
-	uint32_t bytes_this_time;
-	int block_index;
-	size_t block_size;
-	int ret;
-	int cur;
-	int prev_return;
+	FILE *f;
 
-	ret = 0;
-	cur = OCSD_RESP_CONT;
+	f = fopen(tc->filename, "a");
+	fwrite(tc->base + start, len, 1, f);
+	fclose(f);
 
-	dprintf("%s: tc->base %#p\n", __func__, tc->base);
+	*consumed = len;
 
-	bytes_this_time = 0;
-	block_index = start;
-	bytes_done = 0;
-	block_size = len;
-	p_block = (uint8_t *)((uintptr_t)tc->base + start);
+	return (0);
+}
 
-	prev_return = dec->dp_ret;
+static int
+cs_process_chunk(struct trace_context *tc, struct cs_decoder *dec,
+    size_t start, size_t len, uint32_t *consumed)
+{
+	int error;
 
-	while (bytes_done < (uint32_t)block_size) {
-
-		if (OCSD_DATA_RESP_IS_CONT(prev_return)) {
-			dprintf("process data, block_size %ld, bytes_done %d\n",
-			    block_size, bytes_done);
-			cur = ocsd_dt_process_data(dec->dcdtree_handle,
-			    OCSD_OP_DATA,
-			    block_index + bytes_done,
-			    block_size - bytes_done,
-			    ((uint8_t *)p_block) + bytes_done,
-			    &bytes_this_time);
-			bytes_done += bytes_this_time;
-			dprintf("BYTES DONE %d\n", bytes_done);
-		} else if (OCSD_DATA_RESP_IS_WAIT(prev_return)) {
-			cur = ocsd_dt_process_data(dec->dcdtree_handle,
-			    OCSD_OP_FLUSH, 0, 0, NULL, NULL);
-		} else {
-			ret = EINVAL;
-			break;
-		}
-
-		if (OCSD_DATA_RESP_IS_WAIT(cur))
-			break;
-
-		prev_return = cur;
+	if (tc->raw) {
+		error = cs_process_chunk_raw(tc, start, len, consumed);
+		return (error);
 	}
 
-	*consumed = bytes_done;
-	dec->dp_ret = cur;
+	/* TODO: base + start ? */
+	error = ocsd_dt_process_data(dec->dcdtree_handle,
+	    OCSD_OP_DATA, start, len, (uint8_t *)tc->base,
+	    consumed);
 
-	return (ret);
+	if (*consumed != len) {
+		printf("error");
+		exit(5);
+	}
+
+	return (error);
 }
 
 struct pmcstat_pcmap *
@@ -626,9 +606,10 @@ hwt_coresight_process(struct trace_context *tc)
 	int error;
 	int t;
 	struct cs_decoder *dec;
-	size_t processed;
+	uint32_t processed;
 	int cursor;
 	int len;
+	size_t totals;
 
 	/* Coresight data is always on CPU0 due to funnelling by HW. */
 
@@ -640,19 +621,20 @@ hwt_coresight_process(struct trace_context *tc)
 	if (error)
 		return (-1);
 
+#if 0
 	printf("data to process %ld\n", offs);
+#endif
 
 	cursor = 0;
 	processed = 0;
 	len = offs;
 
-	do {
-		cs_process_chunk(tc, dec, cursor, len, &processed);
-		len -= processed;
-		cursor += processed;
-	} while (len);
+	cs_process_chunk(tc, dec, cursor, len, &processed);
+	cursor += processed;
 
 	t = 0;
+
+	totals = processed;
 
 	while (1) {
 		hwt_sleep();
@@ -666,45 +648,31 @@ hwt_coresight_process(struct trace_context *tc)
 
 		if (new_offs == cursor) {
 			/* No new entries in trace. */
-			hwt_sleep();
-			continue;
-		}
-
-		if (new_offs > cursor) {
+		} else if (new_offs > cursor) {
 			/* New entries in the trace buffer. */
 			len = new_offs - cursor;
-			do {
-				cs_process_chunk(tc, dec, cursor, len,
-				    &processed);
-				len -= processed;
-				cursor += processed;
-			} while (len);
+			cs_process_chunk(tc, dec, cursor, len, &processed);
+			cursor += processed;
+			totals += processed;
 
-			hwt_sleep();
-			continue;
-		}
-
-		if (new_offs < cursor) {
+		} else if (new_offs < cursor) {
 			/* New entries in the trace buffer. Buffer wrapped. */
 			len = tc->bufsize - cursor;
-			do {
-				cs_process_chunk(tc, dec, cursor, len,
-				    &processed);
-				len -= processed;
-				cursor += processed;
-			} while (len);
+			cs_process_chunk(tc, dec, cursor, len, &processed);
+			cursor += processed;
+			totals += processed;
 
 			cursor = 0;
 			len = new_offs;
-			do {
-				cs_process_chunk(tc, dec, cursor, len,
-				    &processed);
-				len -= processed;
-				cursor += processed;
-			} while (len);
-			hwt_sleep();
+			cs_process_chunk(tc, dec, cursor, len, &processed);
+			cursor += processed;
+			totals += processed;
 		}
+
+		//hwt_sleep();
 	}
+
+	printf("total data %lx\n", totals);
 
 	return (0);
 }

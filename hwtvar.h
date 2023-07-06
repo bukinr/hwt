@@ -52,6 +52,12 @@ struct trace_context {
 
 	/* Backend-specific config. */
 	void *config;
+
+	/* Raw trace. */
+	int raw;
+
+	/* Trace file. */
+	char *filename;
 };
 
 struct pmcstat_process *hwt_process_alloc(void);

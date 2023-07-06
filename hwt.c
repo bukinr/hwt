@@ -195,7 +195,9 @@ hwt_get_offs(struct trace_context *tc, size_t *offs)
 	if (error)
 		return (error);
 
-	printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
+#if 0
+	printf("curpage %ld curpage_offset %ld\n", curpage, curpage_offset);
+#endif
 
 	*offs = curpage * PAGE_SIZE + curpage_offset;
 
@@ -269,8 +271,14 @@ main(int argc, char **argv, char **env)
 
 	memset(tc, 0, sizeof(struct trace_context));
 
-	while ((option = getopt(argc, argv, "t:i:f:")) != -1)
+	while ((option = getopt(argc, argv, "rw:t:i:f:")) != -1)
 		switch (option) {
+		case 'r':
+			tc->raw = 1; /* Do not decode trace. */
+			break;
+		case 'w':
+			tc->filename = strdup(optarg);
+			break;
 		case 'i':
 			tc->image_name = strdup(optarg);
 			break;
@@ -283,6 +291,11 @@ main(int argc, char **argv, char **env)
 		default:
 			break;
 		}
+
+	if (tc->raw != 0 && tc->filename == NULL) {
+		printf("Filename must be specified for the raw data.\n");
+		exit(1);
+	}
 
 	if ((tc->image_name == NULL && tc->func_name != NULL) ||
 	    (tc->image_name != NULL && tc->func_name == NULL)) {
