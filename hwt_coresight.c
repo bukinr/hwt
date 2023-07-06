@@ -672,7 +672,7 @@ hwt_coresight_process(struct trace_context *tc)
 		//hwt_sleep();
 	}
 
-	printf("total data %lx\n", totals);
+	printf("\nBytes processed: %lx\n", totals);
 
 	return (0);
 }
