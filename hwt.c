@@ -280,15 +280,22 @@ main(int argc, char **argv, char **env)
 			tc->bufsize = atoi(optarg);
 			break;
 		case 'r':
-			tc->raw = 1; /* Do not decode trace. */
+			/* Do not decode trace. */
+			tc->raw = 1;
 			break;
 		case 'w':
+			/* Store (raw) trace into a file. */
 			tc->filename = strdup(optarg);
 			break;
 		case 'i':
+			/*
+			 * Name of dynamic lib or main executable for IP
+			 * address range filtering.
+			 */
 			tc->image_name = strdup(optarg);
 			break;
 		case 'f':
+			/* Name of the func to trace. */
 			tc->func_name = strdup(optarg);
 			break;
 		case 't':
