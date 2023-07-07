@@ -36,6 +36,7 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/hwt.h>
+#include <sys/stat.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,6 +269,7 @@ main(int argc, char **argv, char **env)
 	struct hwt_record_user_entry *entry;
 	struct pmcstat_process *pp;
 	struct trace_context *tc;
+	struct stat st;
 	uint32_t tot_rec;
 	uint32_t nrec;
 	uint32_t nlibs;
@@ -359,6 +361,12 @@ main(int argc, char **argv, char **env)
 	argc += optind;
 
 	cmd = argv;
+
+	error = stat(*cmd, &st);
+	if (error) {
+		printf("Can't file target executable, error %d\n", error);
+		return (error);
+	}
 
 	error = hwt_elf_count_libs(*cmd, &nlibs);
 	if (error != 0) {
