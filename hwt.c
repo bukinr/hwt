@@ -284,7 +284,7 @@ main(int argc, char **argv, char **env)
 	memset(tc, 0, sizeof(struct trace_context));
 
 	/* Defaults */
-	tc->bufsize = 16 * 1024 * 1024;
+	tc->bufsize = 128 * 1024 * 1024;
 #if defined(__aarch64__)
 	trace_dev_name = "coresight";
 #endif
