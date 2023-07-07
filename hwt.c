@@ -48,13 +48,23 @@
 #include <libpmcstat.h>
 
 #include "hwtvar.h"
+
+#if defined(__aarch64__)
 #include "hwt_coresight.h"
+#endif
 
 #define	PARENTSOCKET		0
 #define	CHILDSOCKET		1
 #define	NSOCKPAIRFD		2
 
 static struct trace_context tcs;
+
+static struct trace_dev trace_devs[] = {
+#if defined(__aarch64__)
+	{ "cs",	"ARM Coresight", &cs_methods },
+#endif
+	{ NULL, NULL }
+};
 
 void
 hwt_sleep(void)

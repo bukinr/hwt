@@ -282,4 +282,6 @@ struct etmv4_config {
 int hwt_coresight_set_config(struct trace_context *tc);
 int hwt_coresight_process(struct trace_context *tc);
 
+extern struct trace_dev_methods cs_methods;
+
 #endif /* !_HWT_CORESIGHT_H_ */

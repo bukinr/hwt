@@ -679,3 +679,7 @@ hwt_coresight_process(struct trace_context *tc)
 
 	return (0);
 }
+
+struct trace_dev_methods cs_methods = {
+	.process = hwt_coresight_process,
+};

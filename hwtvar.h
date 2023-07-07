@@ -32,7 +32,20 @@
 
 #define	TC_MAX_ADDR_RANGES	16
 
+struct trace_context;
+
+struct trace_dev_methods {
+	int (*process)(struct trace_context *tc);
+};
+
+struct trace_dev {
+	char *name;
+	char *fullname;
+	struct trace_dev_methods *methods;
+};
+
 struct trace_context {
+	struct trace_dev	*dev;
 	struct pmcstat_process *pp;
 	struct hwt_record_user_entry *records;
 	void *base;
