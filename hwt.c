@@ -50,7 +50,7 @@
 #include "hwtvar.h"
 
 #if defined(__aarch64__)
-#include "hwt_coresight.h"
+extern struct trace_dev_methods cs_methods;
 #endif
 
 #define	PARENTSOCKET		0
@@ -123,7 +123,7 @@ hwt_mmap_received(struct trace_context *tc,
 	tc->suspend_on_mmap = 0;
 
 	/* Start tracing. */
-	error = hwt_coresight_set_config(tc);
+	error = tc->trace_dev->methods->set_config(tc);
 	if (error)
 		return (-2);
 
@@ -414,7 +414,7 @@ main(int argc, char **argv, char **env)
 	if (tc->func_name != NULL)
 		tc->suspend_on_mmap = 1;
 
-	error = hwt_coresight_set_config(tc);
+	error = tc->trace_dev->methods->set_config(tc);
 	if (error != 0) {
 		printf("can't set config");
 		return (error);

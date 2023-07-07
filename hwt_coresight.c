@@ -682,4 +682,5 @@ hwt_coresight_process(struct trace_context *tc)
 
 struct trace_dev_methods cs_methods = {
 	.process = hwt_coresight_process,
+	.set_config = hwt_coresight_set_config,
 };

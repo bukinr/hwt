@@ -36,6 +36,7 @@ struct trace_context;
 
 struct trace_dev_methods {
 	int (*process)(struct trace_context *tc);
+	int (*set_config)(struct trace_context *tc);
 };
 
 struct trace_dev {
