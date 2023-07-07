@@ -36,6 +36,7 @@
 #include <sys/mman.h>
 #include <sys/errno.h>
 #include <sys/hwt.h>
+#include <sys/wait.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -627,33 +628,32 @@ hwt_coresight_process(struct trace_context *tc)
 
 	cursor = 0;
 	processed = 0;
+	totals = 0;
 	len = offs;
 
 	cs_process_chunk(tc, dec, cursor, len, &processed);
 	cursor += processed;
+	totals += processed;
 
 	t = 0;
 
-	totals = processed;
-
 	while (1) {
-		hwt_sleep();
-
-		if (tc->terminate && t++ > 2)
-			break;
-
 		error = hwt_get_offs(tc, &new_offs);
 		if (error)
 			return (-1);
 
 		if (new_offs == cursor) {
 			/* No new entries in trace. */
+			if (tc->terminate && t++ > 2)
+				break;
+			hwt_sleep();
 		} else if (new_offs > cursor) {
 			/* New entries in the trace buffer. */
 			len = new_offs - cursor;
 			cs_process_chunk(tc, dec, cursor, len, &processed);
 			cursor += processed;
 			totals += processed;
+			t = 0;
 
 		} else if (new_offs < cursor) {
 			/* New entries in the trace buffer. Buffer wrapped. */
@@ -667,12 +667,11 @@ hwt_coresight_process(struct trace_context *tc)
 			cs_process_chunk(tc, dec, cursor, len, &processed);
 			cursor += processed;
 			totals += processed;
+			t = 0;
 		}
-
-		//hwt_sleep();
 	}
 
-	printf("\nBytes processed: %lx\n", totals);
+	printf("\nBytes processed: %ld\n", totals);
 
 	return (0);
 }

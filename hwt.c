@@ -271,8 +271,14 @@ main(int argc, char **argv, char **env)
 
 	memset(tc, 0, sizeof(struct trace_context));
 
-	while ((option = getopt(argc, argv, "rw:t:i:f:")) != -1)
+	/* Defaults */
+	tc->bufsize = 16 * 1024 * 1024;
+
+	while ((option = getopt(argc, argv, "b:rw:t:i:f:")) != -1)
 		switch (option) {
+		case 'b':
+			tc->bufsize = atoi(optarg);
+			break;
 		case 'r':
 			tc->raw = 1; /* Do not decode trace. */
 			break;
@@ -337,7 +343,6 @@ main(int argc, char **argv, char **env)
 
 	tc->pp = pp;
 	tc->pid = pid;
-	tc->bufsize = 16 * 1024 * 1024;
 
 	error = hwt_ctx_alloc(tc);
 	if (error) {
