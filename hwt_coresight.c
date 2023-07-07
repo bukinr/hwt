@@ -300,11 +300,8 @@ static int
 cs_process_chunk_raw(struct trace_context *tc, size_t start, size_t len,
     uint32_t *consumed)
 {
-	FILE *f;
 
-	f = fopen(tc->filename, "a");
-	fwrite(tc->base + start, len, 1, f);
-	fclose(f);
+	fwrite(tc->base + start, len, 1, tc->f);
 
 	*consumed = len;
 
@@ -391,8 +388,13 @@ gen_trace_elem_print_lookup(const void *p_context,
 	unsigned long offset;
 	uint64_t newpc;
 	uint64_t ip;
+	FILE *out;
 
 	tc = (const struct trace_context *)p_context;
+	if (tc->filename)
+		out = tc->f;
+	else
+		out = stdout;
 
 	resp = OCSD_RESP_CONT;
 
@@ -422,16 +424,16 @@ gen_trace_elem_print_lookup(const void *p_context,
 
 	switch (elem->elem_type) {
 	case OCSD_GEN_TRC_ELEM_UNKNOWN:
-		printf("Unknown packet.\n");
+		fprintf(out, "Unknown packet.\n");
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_NO_SYNC:
-		printf("No sync.\n");
+		fprintf(out, "No sync.\n");
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_TRACE_ON:
-		printf("Trace on.\n");
+		fprintf(out, "Trace on.\n");
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EO_TRACE:
-		printf("End of Trace.\n");
+		fprintf(out, "End of Trace.\n");
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_PE_CONTEXT:
 		break;
@@ -443,17 +445,17 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EXCEPTION:
-		printf("Exception #%d (%s)\n", elem->exception_number,
+		fprintf(out, "Exception #%d (%s)\n", elem->exception_number,
 		    ARMv8Excep[elem->exception_number]);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EXCEPTION_RET:
-		printf("Exception RET to %lx\n", elem->st_addr);
+		fprintf(out, "Exception RET to %lx\n", elem->st_addr);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_TIMESTAMP:
-		printf("Timestamp: %lx\n", elem->timestamp);
+		fprintf(out, "Timestamp: %lx\n", elem->timestamp);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_CYCLE_COUNT:
-		printf("Cycle count: %d\n", elem->cycle_count);
+		fprintf(out, "Cycle count: %d\n", elem->cycle_count);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EVENT:
 	case OCSD_GEN_TRC_ELEM_SWTRACE:
@@ -476,13 +478,15 @@ gen_trace_elem_print_lookup(const void *p_context,
 	if (sym) {
 		offset = newpc - (sym->ps_start + image->pi_vaddr);
 
-		printf("pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n", //elem->elem_type,
+		fprintf(out, "pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n",
+		    //elem->elem_type,
 		    ip, newpc,
 		    pmcstat_string_unintern(image->pi_name),
 		    pmcstat_string_unintern(sym->ps_name), offset);
 	} else
 		if (image)
-			printf("pc 0x%08lx (%lx)\t%12s\n", //elem->elem_type,
+			fprintf(out, "pc 0x%08lx (%lx)\t%12s\n",
+			    //elem->elem_type,
 			    ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
 		else {

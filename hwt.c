@@ -284,7 +284,7 @@ main(int argc, char **argv, char **env)
 			tc->raw = 1;
 			break;
 		case 'w':
-			/* Store (raw) trace into a file. */
+			/* Store trace into a file. */
 			tc->filename = strdup(optarg);
 			break;
 		case 'i':
@@ -308,6 +308,14 @@ main(int argc, char **argv, char **env)
 	if (tc->raw != 0 && tc->filename == NULL) {
 		printf("Filename must be specified for the raw data.\n");
 		exit(1);
+	}
+
+	if (tc->filename != NULL) {
+		tc->f = fopen(tc->filename, "w");
+		if (tc->f == NULL) {
+			printf("could not open file %s\n", tc->filename);
+			return (ENXIO);
+		}
 	}
 
 	if ((tc->image_name == NULL && tc->func_name != NULL) ||
@@ -416,6 +424,8 @@ main(int argc, char **argv, char **env)
 	hwt_coresight_process(tc);
 
 	close(tc->fd);
+	if (tc->filename)
+		fclose(tc->f);
 
 	return (0);
 }

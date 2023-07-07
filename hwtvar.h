@@ -58,6 +58,7 @@ struct trace_context {
 
 	/* Trace file. */
 	char *filename;
+	FILE *f;
 };
 
 struct pmcstat_process *hwt_process_alloc(void);
