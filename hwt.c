@@ -61,7 +61,7 @@ static struct trace_context tcs;
 
 static struct trace_dev trace_devs[] = {
 #if defined(__aarch64__)
-	{ "cs",	"ARM Coresight", &cs_methods },
+	{ "coresight",	"ARM Coresight", &cs_methods },
 #endif
 	{ NULL, NULL }
 };
@@ -146,7 +146,7 @@ hwt_ctx_alloc(struct trace_context *tc)
 
 	al.pid = tc->pid;
 	al.bufsize = tc->bufsize;
-	al.backend_name = "coresight";
+	al.backend_name = tc->trace_dev->name;
 
 	error = ioctl(tc->fd, HWT_IOC_ALLOC, &al);
 
@@ -272,10 +272,12 @@ main(int argc, char **argv, char **env)
 	uint32_t nrec;
 	uint32_t nlibs;
 	char **cmd;
+	char *trace_dev_name;
 	int error;
 	int sockpair[NSOCKPAIRFD];
 	int pid;
 	int option;
+	int i;
 
 	tc = &tcs;
 
@@ -283,9 +285,15 @@ main(int argc, char **argv, char **env)
 
 	/* Defaults */
 	tc->bufsize = 16 * 1024 * 1024;
+#if defined(__aarch64__)
+	trace_dev_name = "coresight";
+#endif
 
-	while ((option = getopt(argc, argv, "b:rw:t:i:f:")) != -1)
+	while ((option = getopt(argc, argv, "c:b:rw:t:i:f:")) != -1)
 		switch (option) {
+		case 'c':
+			trace_dev_name = strdup(optarg);
+			break;
 		case 'b':
 			tc->bufsize = atol(optarg);
 			break;
@@ -314,6 +322,18 @@ main(int argc, char **argv, char **env)
 		default:
 			break;
 		}
+
+	for (i = 0; trace_devs[i].name != NULL; i++) {
+		if (strcmp(trace_devs[i].name, trace_dev_name) == 0) {
+			tc->trace_dev = &trace_devs[i];
+			break;
+		}
+	}
+
+	if (tc->trace_dev == NULL) {
+		printf("Trace dev not found\n");
+		exit(1);
+	}
 
 	if (tc->raw != 0 && tc->filename == NULL) {
 		printf("Filename must be specified for the raw data.\n");
@@ -431,9 +451,10 @@ main(int argc, char **argv, char **env)
 		hwt_sleep();
 	} while (tot_rec < nlibs);
 
-	hwt_coresight_process(tc);
+	tc->trace_dev->methods->process(tc);
 
 	close(tc->fd);
+
 	if (tc->filename)
 		fclose(tc->f);
 

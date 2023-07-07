@@ -45,7 +45,7 @@ struct trace_dev {
 };
 
 struct trace_context {
-	struct trace_dev	*dev;
+	struct trace_dev *trace_dev;
 	struct pmcstat_process *pp;
 	struct hwt_record_user_entry *records;
 	void *base;
