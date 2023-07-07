@@ -277,7 +277,7 @@ main(int argc, char **argv, char **env)
 	while ((option = getopt(argc, argv, "b:rw:t:i:f:")) != -1)
 		switch (option) {
 		case 'b':
-			tc->bufsize = atoi(optarg);
+			tc->bufsize = atol(optarg);
 			break;
 		case 'r':
 			/* Do not decode trace. */
