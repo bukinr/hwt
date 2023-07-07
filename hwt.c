@@ -280,6 +280,7 @@ main(int argc, char **argv, char **env)
 	int pid;
 	int option;
 	int i;
+	int found;
 
 	tc = &tcs;
 
@@ -287,14 +288,32 @@ main(int argc, char **argv, char **env)
 
 	/* Defaults */
 	tc->bufsize = 128 * 1024 * 1024;
-#if defined(__aarch64__)
-	trace_dev_name = "coresight";
-#endif
+
+	/* First available is default trace device. */
+	tc->trace_dev = &trace_devs[0];
+	if (tc->trace_dev->name == NULL) {
+		printf("No trace devices available\n");
+		return (1);
+	}
 
 	while ((option = getopt(argc, argv, "c:b:rw:t:i:f:")) != -1)
 		switch (option) {
 		case 'c':
 			trace_dev_name = strdup(optarg);
+			found = 0;
+			for (i = 0; trace_devs[i].name != NULL; i++) {
+				if (strcmp(trace_devs[i].name,
+				    trace_dev_name) == 0) {
+					tc->trace_dev = &trace_devs[i];
+					found = 1;
+					break;
+				}
+			}
+			if (!found) {
+				printf("Trace device \"%s\" not available.\n",
+				    trace_dev_name);
+				return (ENOENT);
+			}
 			break;
 		case 'b':
 			tc->bufsize = atol(optarg);
@@ -324,18 +343,6 @@ main(int argc, char **argv, char **env)
 		default:
 			break;
 		}
-
-	for (i = 0; trace_devs[i].name != NULL; i++) {
-		if (strcmp(trace_devs[i].name, trace_dev_name) == 0) {
-			tc->trace_dev = &trace_devs[i];
-			break;
-		}
-	}
-
-	if (tc->trace_dev == NULL) {
-		printf("Trace dev not found\n");
-		exit(1);
-	}
 
 	if (tc->raw != 0 && tc->filename == NULL) {
 		printf("Filename must be specified for the raw data.\n");
