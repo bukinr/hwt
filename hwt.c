@@ -371,7 +371,7 @@ main(int argc, char **argv, char **env)
 
 	error = stat(*cmd, &st);
 	if (error) {
-		printf("Can't file target executable, error %d\n", error);
+		printf("Could not find target executable, error %d.\n", error);
 		return (error);
 	}
 
