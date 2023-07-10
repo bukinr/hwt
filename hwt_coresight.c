@@ -302,7 +302,7 @@ cs_process_chunk_raw(struct trace_context *tc, size_t start, size_t len,
 {
 	void *base;
 
-	start = (uintptr_t)tc->base + (uintptr_t)start;
+	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
 
 	fwrite(base, len, 1, tc->f);
 
