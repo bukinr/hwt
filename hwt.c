@@ -147,6 +147,7 @@ hwt_ctx_alloc(struct trace_context *tc)
 	struct hwt_alloc al;
 	int error;
 
+	al.mode = HWT_MODE_THREAD;
 	al.pid = tc->pid;
 	al.bufsize = tc->bufsize;
 	al.backend_name = tc->trace_dev->name;
