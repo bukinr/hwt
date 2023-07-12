@@ -315,6 +315,7 @@ static int
 cs_process_chunk(struct trace_context *tc, struct cs_decoder *dec,
     size_t start, size_t len, uint32_t *consumed)
 {
+	void *base;
 	int error;
 
 	if (tc->raw) {
@@ -322,10 +323,10 @@ cs_process_chunk(struct trace_context *tc, struct cs_decoder *dec,
 		return (error);
 	}
 
-	/* TODO: base + start ? */
+	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
+
 	error = ocsd_dt_process_data(dec->dcdtree_handle,
-	    OCSD_OP_DATA, start, len, (uint8_t *)tc->base,
-	    consumed);
+	    OCSD_OP_DATA, start, len, base, consumed);
 
 	if (*consumed != len) {
 		printf("error");
