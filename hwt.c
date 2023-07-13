@@ -486,8 +486,6 @@ main(int argc, char **argv, char **env)
 		return (error);
 	}
 
-	while (1);
-
 	close(tc->fd);
 
 	if (tc->filename)
