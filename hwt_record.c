@@ -89,6 +89,7 @@ printf("%s: error %d: nent %d\n", __func__, error, nentries);
 		case HWT_RECORD_MUNMAP:
 		case HWT_RECORD_EXECUTABLE:
 		case HWT_RECORD_INTERP:
+		//case HWT_RECORD_KERNEL:
 			printf("  lib #%d: path %s addr %lx size %lx\n", j,
 			    entry->fullpath,
 			    (unsigned long)entry->addr,
@@ -115,6 +116,7 @@ printf("%s: error %d: nent %d\n", __func__, error, nentries);
 			break;
 		case HWT_RECORD_THREAD_CREATE:
 		case HWT_RECORD_THREAD_SET_NAME:
+			break;
 		default:
 			break;
 		}
