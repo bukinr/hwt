@@ -144,7 +144,7 @@ hwt_ctx_alloc(struct trace_context *tc)
 	struct hwt_alloc al;
 	int error;
 
-	al.mode = HWT_MODE_THREAD;
+	al.mode = tc->mode;
 	al.pid = tc->pid;
 	al.bufsize = tc->bufsize;
 	al.backend_name = tc->trace_dev->name;
@@ -160,7 +160,10 @@ hwt_map_memory(struct trace_context *tc, int tid)
 {
 	char filename[32];
 
-	sprintf(filename, "/dev/hwt_%d_%d", tc->ident, tid);
+	if (tc->mode == HWT_MODE_THREAD)
+		sprintf(filename, "/dev/hwt_%d_%d", tc->ident, tid);
+	else
+		sprintf(filename, "/dev/hwt_%d", tc->ident);
 
 	tc->thr_fd = open(filename, O_RDONLY);
 	if (tc->thr_fd < 0) {
@@ -284,10 +287,27 @@ usage(void)
 static int
 hwt_mode_cpu(struct trace_context *tc)
 {
+	int error;
 
 	if (tc->image_name == NULL || tc->func_name == NULL)
 		errx(EX_USAGE, "IP range filtering must be setup for CPU"
 		    " tracing");
+
+	error = hwt_ctx_alloc(tc);
+	if (error) {
+		printf("%s: failed to alloc ctx, error %d\n", __func__, error);
+		return (error);
+	}
+
+	error = hwt_map_memory(tc, 0);
+	if (error != 0) {
+		printf("can't map memory");
+		return (error);
+	}
+
+	error = tc->trace_dev->methods->set_config(tc);
+	if (error != 0)
+		errx(EX_DATAERR, "can't set config");
 
 	return (0);
 }
@@ -328,10 +348,7 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 
 	printf("%s: process pid %d created\n", __func__, tc->pid);
 
-	pp = hwt_process_alloc();
-	pp->pp_pid = tc->pid;
-	pp->pp_isactive = 1;
-	tc->pp = pp;
+	tc->pp->pp_pid = tc->pid;
 
 	error = hwt_ctx_alloc(tc);
 	if (error) {
@@ -491,6 +508,9 @@ main(int argc, char **argv, char **env)
 		printf("Can't open /dev/hwt\n");
 		return (-1);
 	}
+
+	tc->pp = hwt_process_alloc();
+	tc->pp->pp_isactive = 1;
 
 	if (tc->mode == HWT_MODE_THREAD) {
 		argc += optind;
