@@ -199,7 +199,7 @@ hwt_ncpu(void)
 	return (ncpu);
 }
 
-size_t
+int
 hwt_get_offs(struct trace_context *tc, size_t *offs)
 {
 	struct hwt_bufptr_get bget;
@@ -315,6 +315,17 @@ hwt_mode_cpu(struct trace_context *tc)
 	error = tc->trace_dev->methods->set_config(tc);
 	if (error != 0)
 		errx(EX_DATAERR, "can't set config");
+
+	error = hwt_start_tracing(tc);
+	if (error)
+		errx(EX_SOFTWARE, "failed to start tracing, error %d\n", error);
+
+	size_t offs;
+	while (1) {
+		hwt_get_offs(tc, &offs);
+		printf("new offs %lx\n", offs);
+		sleep(1);
+	}
 
 	return (0);
 }
