@@ -282,6 +282,13 @@ usage(void)
 }
 
 static int
+hwt_mode_cpu(struct trace_context *tc)
+{
+
+	return (0);
+}
+
+static int
 hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 {
 	struct pmcstat_process *pp;
@@ -378,7 +385,6 @@ int
 main(int argc, char **argv, char **env)
 {
 	struct trace_context *tc;
-	char **cmd;
 	char *trace_dev_name;
 	int error;
 	int option;
@@ -483,21 +489,18 @@ main(int argc, char **argv, char **env)
 	}
 
 	if (tc->mode == HWT_MODE_THREAD) {
-		argv += optind;
 		argc += optind;
-
-		cmd = argv;
-		if (*cmd == NULL)
+		argv += optind;
+		if (*argv == NULL)
 			usage();
-		hwt_mode_thread(tc, cmd, env);
-	} else {
-
-	}
+		error = hwt_mode_thread(tc, argv, env);
+	} else
+		error = hwt_mode_cpu(tc);
 
 	close(tc->fd);
 
 	if (tc->filename)
 		fclose(tc->f);
 
-	return (0);
+	return (error);
 }
