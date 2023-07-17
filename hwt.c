@@ -144,8 +144,14 @@ hwt_ctx_alloc(struct trace_context *tc)
 	struct hwt_alloc al;
 	int error;
 
+	memset(&al, 0, sizeof(struct hwt_alloc));
+
 	al.mode = tc->mode;
-	al.pid = tc->pid;
+	if (tc->mode == HWT_MODE_THREAD)
+		al.pid = tc->pid;
+	else
+		al.cpu = tc->cpu;
+
 	al.bufsize = tc->bufsize;
 	al.backend_name = tc->trace_dev->name;
 	al.ident = &tc->ident;
@@ -295,7 +301,8 @@ hwt_mode_cpu(struct trace_context *tc)
 
 	error = hwt_ctx_alloc(tc);
 	if (error) {
-		printf("%s: failed to alloc ctx, error %d\n", __func__, error);
+		printf("%s: failed to kernel-model alloc ctx, error %d\n",
+		    __func__, error);
 		return (error);
 	}
 
