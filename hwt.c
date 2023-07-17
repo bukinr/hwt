@@ -285,6 +285,10 @@ static int
 hwt_mode_cpu(struct trace_context *tc)
 {
 
+	if (tc->image_name == NULL || tc->func_name == NULL)
+		errx(EX_USAGE, "IP range filtering must be setup for CPU"
+		    " tracing");
+
 	return (0);
 }
 
@@ -298,6 +302,9 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 	uint32_t nlibs;
 	int sockpair[NSOCKPAIRFD];
 	int error;
+
+	if (tc->func_name != NULL)
+		tc->suspend_on_mmap = 1;
 
 	error = stat(*cmd, &st);
 	if (error) {
@@ -478,9 +485,6 @@ main(int argc, char **argv, char **env)
 	    (tc->image_name != NULL && tc->func_name == NULL))
 		errx(EX_USAGE, "For address range tracing specify both image "
 		    "and func, or none of them.");
-
-	if (tc->func_name != NULL)
-		tc->suspend_on_mmap = 1;
 
 	tc->fd = open("/dev/hwt", O_RDWR);
 	if (tc->fd < 0) {
