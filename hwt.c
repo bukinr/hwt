@@ -562,13 +562,16 @@ main(int argc, char **argv, char **env)
 	tc->pp = hwt_process_alloc();
 	tc->pp->pp_isactive = 1;
 
+	argc += optind;
+	argv += optind;
+
 	if (tc->mode == HWT_MODE_THREAD) {
-		argc += optind;
-		argv += optind;
 		if (*argv == NULL)
 			usage();
 		error = hwt_mode_thread(tc, argv, env);
 	} else
+		if (*argv != NULL)
+			usage();
 		error = hwt_mode_cpu(tc);
 
 	close(tc->fd);
