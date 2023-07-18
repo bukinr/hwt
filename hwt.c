@@ -569,10 +569,11 @@ main(int argc, char **argv, char **env)
 		if (*argv == NULL)
 			usage();
 		error = hwt_mode_thread(tc, argv, env);
-	} else
+	} else {
 		if (*argv != NULL)
 			usage();
 		error = hwt_mode_cpu(tc);
+	}
 
 	close(tc->fd);
 
