@@ -38,6 +38,7 @@
 #include <sys/hwt.h>
 #include <sys/stat.h>
 
+#include <assert.h>
 #include <err.h>
 #include <sysexits.h>
 #include <stdio.h>
@@ -108,6 +109,8 @@ hwt_mmap_received(struct trace_context *tc,
 {
 	int error;
 
+	assert(tc->mode == HWT_MODE_THREAD);
+
 	if (!tc->suspend_on_mmap)
 		return (0);
 
@@ -122,7 +125,6 @@ hwt_mmap_received(struct trace_context *tc,
 
 	tc->suspend_on_mmap = 0;
 
-	/* Start tracing. */
 	error = tc->trace_dev->methods->set_config(tc);
 	if (error)
 		return (-2);
@@ -312,6 +314,27 @@ hwt_mode_cpu(struct trace_context *tc)
 		return (error);
 	}
 
+	tc->pp->pp_pid = -1;
+
+	uint32_t nrec;
+	int tot_rec;
+	int nlibs;
+
+	nlibs = 1;
+	tot_rec = 0;
+
+	do {
+		error = hwt_get_records(tc, &nrec);
+		if (error != 0)
+			return (error);
+		tot_rec += nrec;
+		hwt_sleep();
+	} while (tot_rec < nlibs);
+
+	error = hwt_find_sym(tc);
+	if (error)
+		errx(EX_USAGE, "could not find symbol");
+
 	error = tc->trace_dev->methods->set_config(tc);
 	if (error != 0)
 		errx(EX_DATAERR, "can't set config");
@@ -320,11 +343,19 @@ hwt_mode_cpu(struct trace_context *tc)
 	if (error)
 		errx(EX_SOFTWARE, "failed to start tracing, error %d\n", error);
 
+#if 0
 	size_t offs;
 	while (1) {
 		hwt_get_offs(tc, &offs);
 		printf("new offs %lx\n", offs);
 		sleep(1);
+	}
+#endif
+
+	error = tc->trace_dev->methods->process(tc);
+	if (error) {
+		printf("cant process data, error %d\n", error);
+		return (error);
 	}
 
 	return (0);

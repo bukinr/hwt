@@ -89,7 +89,6 @@ printf("%s: error %d: nent %d\n", __func__, error, nentries);
 		case HWT_RECORD_MUNMAP:
 		case HWT_RECORD_EXECUTABLE:
 		case HWT_RECORD_INTERP:
-		//case HWT_RECORD_KERNEL:
 			printf("  lib #%d: path %s addr %lx size %lx\n", j,
 			    entry->fullpath,
 			    (unsigned long)entry->addr,
@@ -113,6 +112,16 @@ printf("%s: error %d: nent %d\n", __func__, error, nentries);
 			    (unsigned long)image->pi_entry);
 #endif
 			hwt_mmap_received(tc, entry);
+			break;
+		case HWT_RECORD_KERNEL:
+			path = pmcstat_string_intern(entry->fullpath);
+			if ((image = pmcstat_image_from_path(path, 1,
+			    &args, &plugins)) == NULL)
+				return (-1);
+			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
+				pmcstat_image_determine_type(image, &args);
+			addr = (unsigned long)entry->addr & ~1;
+			pmcstat_image_link(tc->pp, image, addr);
 			break;
 		case HWT_RECORD_THREAD_CREATE:
 		case HWT_RECORD_THREAD_SET_NAME:
