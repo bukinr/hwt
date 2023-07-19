@@ -365,7 +365,6 @@ hwt_mode_cpu(struct trace_context *tc)
 static int
 hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 {
-	struct pmcstat_process *pp;
 	struct stat st;
 	uint32_t tot_rec;
 	uint32_t nrec;
