@@ -33,6 +33,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
+#include <sys/cpuset.h>
 #include <sys/hwt.h>
 #include <sys/hwt_record.h>
 
