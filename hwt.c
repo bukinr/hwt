@@ -586,8 +586,5 @@ main(int argc, char **argv, char **env)
 	if (tc->filename)
 		fclose(tc->f);
 
-	while (1)
-		sleep(1);
-
 	return (error);
 }
