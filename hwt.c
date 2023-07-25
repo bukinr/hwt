@@ -283,17 +283,18 @@ usage(void)
 {
 
 	errx(EX_USAGE,
-		"hwt [-s cpu_id] [-c devname] [-b bufsize] [-t id] [-r] [-w file] [-i name]"
+		"hwt [-s cpu_id] [-c devname] [-b bufsize] [-t id] [-g] [-r] [-w file] [-i name]"
 		    " [-f name] [path to executable]\n"
-		"\t -s\tcpu_id\t\tCPU (kernel) mode\n"
-		"\t -c\tname\t\tName of tracing device, e.g. coresight\n"
+		"\t -s\tcpu_id\t\tCPU (kernel) mode.\n"
+		"\t -c\tname\t\tName of tracing device, e.g. 'coresight'.\n"
 		"\t -b\tbufsize\t\tSize of trace buffer (per each thread) in bytes.\n"
-		"\t -t\tid\t\tThread index of application passed to decoder\n"
-		"\t -r\t\t\tRaw flag. Do not decode results\n"
-		"\t -w\tfilename\tStore results into file\n"
-		"\t -i\tname\t\tfilter by dynamic library / executable name or 'kernel' \n"
-		"\t -f\tname\t\tfilter by function name\n"
-
+		"\t -t\tid\t\tThread index of application passed to decoder.\n"
+		"\t -r\t\t\tRaw flag. Do not decode results.\n"
+		"\t -w\tfilename\tStore results into file.\n"
+		"\t -g\t\t\tFormat flag.\n"
+		"\t -i\tname\t\tFilter by dynamic library, executable name,\n"
+		"\t\t\t\tkernel module name or 'kernel'.\n"
+		"\t -f\tname\t\tFilter by function name."
 #if defined(__aarch64__)
 #endif
         );
