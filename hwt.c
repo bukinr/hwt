@@ -486,7 +486,7 @@ main(int argc, char **argv, char **env)
 
 	tc->mode = HWT_MODE_THREAD;
 
-	while ((option = getopt(argc, argv, "s:hc:b:rw:t:i:f:")) != -1)
+	while ((option = getopt(argc, argv, "gs:hc:b:rw:t:i:f:")) != -1)
 		switch (option) {
 		case 's':
 			tc->mode = HWT_MODE_CPU;
@@ -533,6 +533,9 @@ main(int argc, char **argv, char **env)
 			break;
 		case 't':
 			tc->thread_id = atoi(optarg);
+			break;
+		case 'g':
+			tc->flag_format = 1;
 			break;
 		case 'h':
 			usage();
