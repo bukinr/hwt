@@ -303,6 +303,7 @@ usage(void)
 static int
 hwt_mode_cpu(struct trace_context *tc)
 {
+	uint32_t nrec;
 	int error;
 
 	if (tc->image_name == NULL || tc->func_name == NULL)
@@ -324,20 +325,11 @@ hwt_mode_cpu(struct trace_context *tc)
 
 	tc->pp->pp_pid = -1;
 
-	uint32_t nrec;
-	int tot_rec;
-	int nlibs;
+	error = hwt_get_records(tc, &nrec);
+	if (error != 0)
+		return (error);
 
-	nlibs = 1;
-	tot_rec = 0;
-
-	do {
-		error = hwt_get_records(tc, &nrec);
-		if (error != 0)
-			return (error);
-		tot_rec += nrec;
-		hwt_sleep();
-	} while (tot_rec < nlibs);
+	printf("Received %d kernel mappings\n", nrec);
 
 	error = hwt_find_sym(tc);
 	if (error)
@@ -350,15 +342,6 @@ hwt_mode_cpu(struct trace_context *tc)
 	error = hwt_start_tracing(tc);
 	if (error)
 		errx(EX_SOFTWARE, "failed to start tracing, error %d\n", error);
-
-#if 0
-	size_t offs;
-	while (1) {
-		hwt_get_offs(tc, &offs);
-		printf("new offs %lx\n", offs);
-		sleep(1);
-	}
-#endif
 
 	error = tc->trace_dev->methods->process(tc);
 	if (error) {
