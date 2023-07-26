@@ -418,7 +418,7 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 	if (error != 0)
 		return (error);
 
-	printf("nlibs %d\n", nlibs);
+	printf("Expect %d records.\n", nlibs);
 
 	tot_rec = 0;
 
@@ -437,7 +437,7 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 
 	error = tc->trace_dev->methods->process(tc);
 	if (error) {
-		printf("cant process data, error %d\n", error);
+		printf("Can't process data, error %d.\n", error);
 		return (error);
 	}
 
