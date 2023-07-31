@@ -52,7 +52,7 @@ struct trace_context {
 	void *base;
 	size_t bufsize;
 	int pid;
-	int cpu;
+	cpuset_t cpu_map;
 	int fd;
 	int thr_fd;
 	int terminate;
