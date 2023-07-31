@@ -115,7 +115,7 @@ printf("%s: error %d: nent %d\n", __func__, error, nentries);
 			hwt_mmap_received(tc, entry);
 			break;
 		case HWT_RECORD_KERNEL:
-			snprintf(imagepath, sizeof(imagepath), "%s%s",
+			snprintf(imagepath, sizeof(imagepath), "%s/%s",
 			    tc->fs_root, entry->fullpath);
 			printf("  image #%d: path %s addr %lx\n", j,
 			    imagepath, (unsigned long)entry->addr);
