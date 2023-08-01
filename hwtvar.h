@@ -94,5 +94,6 @@ int hwt_find_sym(struct trace_context *tc);
 int hwt_start_tracing(struct trace_context *tc);
 int hwt_mmap_received(struct trace_context *tc,
     struct hwt_record_user_entry *entry);
+int hwt_ncpu(void);
 
 #endif /* !_HWTVAR_H_ */

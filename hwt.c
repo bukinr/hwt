@@ -192,7 +192,7 @@ hwt_map_memory(struct trace_context *tc, int tid)
 	return (0);
 }
 
-static int __unused
+int
 hwt_ncpu(void)
 {
 	int ncpu;
@@ -218,7 +218,7 @@ hwt_get_offs(struct trace_context *tc, size_t *offs)
 		return (error);
 
 #if 0
-	printf("curpage %ld curpage_offset %ld\n", curpage, curpage_offset);
+	printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
 #endif
 
 	*offs = curpage * PAGE_SIZE + curpage_offset;
