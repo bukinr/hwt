@@ -675,6 +675,14 @@ hwt_coresight_init1(struct trace_context *tc, struct cs_decoder *dec)
 	return (error);
 }
 
+static void
+catch_int(int sig_num)
+{
+
+	printf("Decoder stopped\n");
+	exit(0);
+}
+
 static int
 hwt_coresight_process(struct trace_context *tc)
 {
@@ -689,6 +697,8 @@ hwt_coresight_process(struct trace_context *tc)
 	size_t totals;
 	int cpu_id;
 	int ncpu;
+
+	signal(SIGINT, catch_int);
 
 	ocsd_def_errlog_init(OCSD_ERR_SEV_INFO, 1);
 
@@ -707,9 +717,7 @@ hwt_coresight_process(struct trace_context *tc)
 	}
 
 
-#if 0
-	printf("data to process %ld\n", offs);
-#endif
+	printf("Decoder started\n");
 
 	cursor = 0;
 	processed = 0;
