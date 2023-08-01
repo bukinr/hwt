@@ -570,14 +570,6 @@ main(int argc, char **argv, char **env)
 		exit(1);
 	}
 
-	if (tc->filename != NULL) {
-		tc->f = fopen(tc->filename, "w");
-		if (tc->f == NULL) {
-			printf("could not open file %s\n", tc->filename);
-			return (ENXIO);
-		}
-	}
-
 	if ((tc->image_name == NULL && tc->func_name != NULL) ||
 	    (tc->image_name != NULL && tc->func_name == NULL))
 		errx(EX_USAGE, "For address range tracing specify both image "
@@ -606,9 +598,6 @@ main(int argc, char **argv, char **env)
 	}
 
 	close(tc->fd);
-
-	if (tc->filename)
-		fclose(tc->f);
 
 	return (error);
 }

@@ -73,10 +73,10 @@ struct trace_context {
 
 	/* Raw trace. */
 	int raw;
+	FILE *raw_f;
 
 	/* Trace file. */
 	char *filename;
-	FILE *f;
 
 	int mode;
 	char *fs_root;

@@ -309,8 +309,8 @@ cs_process_chunk_raw(struct trace_context *tc, size_t start, size_t len,
 
 	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
 
-	fwrite(base, len, 1, tc->f);
-	fflush(tc->f);
+	fwrite(base, len, 1, tc->raw_f);
+	fflush(tc->raw_f);
 
 	*consumed = len;
 
@@ -662,7 +662,12 @@ hwt_coresight_init1(struct trace_context *tc, struct cs_decoder *dec)
 	int error;
 
 	if (tc->raw) {
-		/* No decoder needed.*/
+		/* No decoder needed, just a file for raw data. */
+		tc->raw_f = fopen(tc->filename, "w");
+		if (tc->raw_f == NULL) {
+			printf("could not open file %s\n", tc->filename);
+			return (ENXIO);
+		}
 	} else if (tc->mode == HWT_MODE_CPU) {
 		CPU_FOREACH_ISSET(cpu_id, &tc->cpu_map) {
 			error = hwt_coresight_init(tc, &dec[cpu_id], cpu_id);
