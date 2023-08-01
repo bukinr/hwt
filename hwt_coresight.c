@@ -77,6 +77,7 @@ static char packet_str[PACKET_STR_LEN];
 
 struct cs_decoder {
 	dcd_tree_handle_t dcdtree_handle;
+	struct trace_context *tc;
 	int dp_ret;
 	int cpu_id;
 };
@@ -396,11 +397,13 @@ gen_trace_elem_print_lookup(const void *p_context,
 	ocsd_datapath_resp_t resp;
 	struct pmcstat_symbol *sym;
 	unsigned long offset;
+	struct cs_decoder *dec;
 	uint64_t newpc;
 	uint64_t ip;
 	FILE *out;
 
-	tc = (const struct trace_context *)p_context;
+	dec = (struct cs_decoder *)p_context;
+	tc = dec->tc;
 	if (tc->filename)
 		out = tc->f;
 	else
@@ -513,6 +516,7 @@ hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec,
 	int error;
 
 	dec->cpu_id = thread_id;
+	dec->tc = tc;
 	dec->dp_ret = OCSD_RESP_CONT;
 	dec->dcdtree_handle = ocsd_create_dcd_tree(OCSD_TRC_SRC_FRAME_FORMATTED,
 	    OCSD_DFRMTR_FRAME_MEM_ALIGN);
@@ -541,7 +545,7 @@ hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec,
 		ocsd_dt_set_gen_elem_printer(dec->dcdtree_handle);
 	else
 		ocsd_dt_set_gen_elem_outfn(dec->dcdtree_handle,
-		    gen_trace_elem_print_lookup, tc);
+		    gen_trace_elem_print_lookup, dec);
 
 	attach_raw_printers(dec->dcdtree_handle);
 

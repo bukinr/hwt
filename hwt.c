@@ -476,6 +476,7 @@ main(int argc, char **argv, char **env)
 	int error;
 	int option;
 	int found;
+	int thread_id_specified;
 	int i;
 
 	tc = &tcs;
@@ -494,7 +495,8 @@ main(int argc, char **argv, char **env)
 
 	tc->mode = HWT_MODE_THREAD;
 	tc->fs_root = "/";
-	tc->thread_id = -1;
+	tc->thread_id = 0;
+	thread_id_specified = 0;
 
 	while ((option = getopt(argc, argv, "R:gs:hc:b:rw:t:i:f:")) != -1)
 		switch (option) {
@@ -546,6 +548,7 @@ main(int argc, char **argv, char **env)
 			break;
 		case 't':
 			tc->thread_id = atoi(optarg);
+			thread_id_specified = 1;
 			break;
 		case 'g':
 			tc->flag_format = 1;
@@ -557,7 +560,7 @@ main(int argc, char **argv, char **env)
 			break;
 		}
 
-	if (tc->mode == HWT_MODE_CPU && tc->thread_id >= 0) {
+	if (tc->mode == HWT_MODE_CPU && thread_id_specified) {
 		printf("Thread ID to decode used in THREAD mode only.\n");
 		exit(1);
 	}
