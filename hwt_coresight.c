@@ -327,7 +327,7 @@ cs_process_chunk(struct trace_context *tc, struct cs_decoder *dec,
 	/* Coresight data is always on first cpu cdev due to funnelling by HW.*/
 	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
 
-	printf("Processing data for CPU%d\n", dec->cpu_id);
+	dprintf("Processing data for CPU%d\n", dec->cpu_id);
 
 	error = ocsd_dt_process_data(dec->dcdtree_handle,
 	    OCSD_OP_DATA, start, len, base, consumed);
