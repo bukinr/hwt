@@ -722,7 +722,7 @@ hwt_coresight_process(struct trace_context *tc)
 	}
 
 
-	printf("Decoder started\n");
+	printf("Decoder started. Press ctrl+c to stop.\n");
 
 	cursor = 0;
 	processed = 0;
