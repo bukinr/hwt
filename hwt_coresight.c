@@ -396,12 +396,24 @@ gen_trace_elem_print_lookup(const void *p_context,
 	uint64_t newpc;
 	uint64_t ip;
 	FILE *out;
+	char filename[MAXPATHLEN];
 
 	dec = (struct cs_decoder *)p_context;
 	tc = dec->tc;
-	if (tc->filename)
-		out = tc->f;
-	else
+
+	if (tc->filename) {
+		if (tc->mode == HWT_MODE_CPU)
+			snprintf(filename, MAXPATHLEN, "%s%d", tc->filename,
+			    dec->cpu_id);
+		else
+			snprintf(filename, MAXPATHLEN, "%s", tc->filename);
+
+		out = fopen(filename, "a");
+		if (out == NULL) {
+			printf("could not open %s\n", filename);
+			return (ENXIO);
+		}
+	} else
 		out = stdout;
 
 	resp = OCSD_RESP_CONT;
@@ -500,6 +512,9 @@ gen_trace_elem_print_lookup(const void *p_context,
 		else {
 			/* image not found. */
 		}
+
+	if (tc->filename)
+		fclose(out);
 
 	return (resp);
 }
