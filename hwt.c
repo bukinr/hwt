@@ -494,6 +494,7 @@ main(int argc, char **argv, char **env)
 
 	tc->mode = HWT_MODE_THREAD;
 	tc->fs_root = "/";
+	tc->thread_id = -1;
 
 	while ((option = getopt(argc, argv, "R:gs:hc:b:rw:t:i:f:")) != -1)
 		switch (option) {
@@ -555,6 +556,11 @@ main(int argc, char **argv, char **env)
 		default:
 			break;
 		}
+
+	if (tc->mode == HWT_MODE_CPU && tc->thread_id >= 0) {
+		printf("Thread ID to decode used in THREAD mode only.\n");
+		exit(1);
+	}
 
 	if (tc->raw != 0 && tc->filename == NULL) {
 		printf("Filename must be specified for the raw data.\n");
