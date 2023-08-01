@@ -78,6 +78,7 @@ static char packet_str[PACKET_STR_LEN];
 struct cs_decoder {
 	dcd_tree_handle_t dcdtree_handle;
 	int dp_ret;
+	int cpu_id;
 };
 
 static ocsd_err_t
@@ -268,7 +269,8 @@ create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
 }
 
 static ocsd_err_t
-create_decoder_etmv4(struct trace_context *tc, dcd_tree_handle_t dcd_tree_h)
+create_decoder_etmv4(struct trace_context *tc, dcd_tree_handle_t dcd_tree_h,
+    int thread_id)
 {
 	ocsd_etmv4_cfg trace_config;
 	ocsd_err_t ret;
@@ -278,7 +280,7 @@ create_decoder_etmv4(struct trace_context *tc, dcd_tree_handle_t dcd_tree_h)
 
 	trace_config.reg_configr = 0x00001fc6;
 	trace_config.reg_configr = 0x000000C1;
-	trace_config.reg_traceidr = tc->thread_id + 1;
+	trace_config.reg_traceidr = thread_id + 1;
 
 	trace_config.reg_idr0   = 0x28000ea1;
 	trace_config.reg_idr1   = 0x4100f424;
@@ -324,7 +326,10 @@ cs_process_chunk(struct trace_context *tc, struct cs_decoder *dec,
 		return (error);
 	}
 
+	/* Coresight data is always on first cpu cdev due to funnelling by HW.*/
 	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
+
+	printf("Processing data for CPU%d\n", dec->cpu_id);
 
 	error = ocsd_dt_process_data(dec->dcdtree_handle,
 	    OCSD_OP_DATA, start, len, base, consumed);
@@ -502,12 +507,12 @@ gen_trace_elem_print_lookup(const void *p_context,
 }
 
 static int
-hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec)
+hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec,
+    int thread_id)
 {
 	int error;
 
-	ocsd_def_errlog_init(OCSD_ERR_SEV_INFO, 1);
-
+	dec->cpu_id = thread_id;
 	dec->dp_ret = OCSD_RESP_CONT;
 	dec->dcdtree_handle = ocsd_create_dcd_tree(OCSD_TRC_SRC_FRAME_FORMATTED,
 	    OCSD_DFRMTR_FRAME_MEM_ALIGN);
@@ -522,7 +527,7 @@ hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec)
 	//cs_flags |= FLAG_FRAME_RAW_UNPACKED;
 	//cs_flags |= FLAG_FRAME_RAW_PACKED;
 
-	error = create_decoder_etmv4(tc, dec->dcdtree_handle);
+	error = create_decoder_etmv4(tc, dec->dcdtree_handle, thread_id);
 	if (error != OCSD_OK) {
 		printf("can't create decoder: tc->base %#p\n", tc->base);
 		return (-2);
@@ -611,6 +616,45 @@ hwt_coresight_set_config(struct trace_context *tc)
 }
 
 static int
+cs_process_chunk1(struct trace_context *tc, struct cs_decoder *dec,
+    size_t cursor, size_t len, uint32_t *processed)
+{
+	int cpu_id;
+	int error;
+
+	if (tc->mode == HWT_MODE_CPU) {
+		CPU_FOREACH_ISSET(cpu_id, &tc->cpu_map) {
+			error = cs_process_chunk(tc, &dec[cpu_id], cursor, len,
+			    processed);
+			if (error)
+				return (error);
+		}
+	} else
+		error = cs_process_chunk(tc, dec, cursor, len, processed);
+
+	return (0);
+}
+
+static int
+hwt_coresight_init1(struct trace_context *tc, struct cs_decoder *dec)
+{
+	int thread_id;
+	int cpu_id;
+	int error;
+
+	if (tc->mode == HWT_MODE_CPU) {
+		CPU_FOREACH_ISSET(cpu_id, &tc->cpu_map) {
+			error = hwt_coresight_init(tc, &dec[cpu_id], cpu_id);
+			if (error)
+				return (error);
+		}
+	} else
+		error = hwt_coresight_init(tc, dec, tc->thread_id);
+
+	return (error);
+}
+
+static int
 hwt_coresight_process(struct trace_context *tc)
 {
 	size_t offs;
@@ -622,18 +666,25 @@ hwt_coresight_process(struct trace_context *tc)
 	size_t cursor;
 	int len;
 	size_t totals;
+	int cpu_id;
+	int ncpu;
 
-	/* Coresight data is always on CPU0 due to funnelling by HW. */
+	ocsd_def_errlog_init(OCSD_ERR_SEV_INFO, 1);
 
-	dec = malloc(sizeof(struct cs_decoder));
+	ncpu = hwt_ncpu();
 
-	hwt_coresight_init(tc, dec);
+	dec = malloc(sizeof(struct cs_decoder) * ncpu);
+
+	error = hwt_coresight_init1(tc, dec);
+	if (error)
+		return (error);
 
 	error = hwt_get_offs(tc, &offs);
 	if (error) {
 		printf("%s: cant get offset\n", __func__);
 		return (-1);
 	}
+
 
 #if 0
 	printf("data to process %ld\n", offs);
@@ -644,7 +695,7 @@ hwt_coresight_process(struct trace_context *tc)
 	totals = 0;
 	len = offs;
 
-	cs_process_chunk(tc, dec, cursor, len, &processed);
+	cs_process_chunk1(tc, dec, cursor, len, &processed);
 	cursor += processed;
 	totals += processed;
 
@@ -663,7 +714,7 @@ hwt_coresight_process(struct trace_context *tc)
 		} else if (new_offs > cursor) {
 			/* New entries in the trace buffer. */
 			len = new_offs - cursor;
-			cs_process_chunk(tc, dec, cursor, len, &processed);
+			cs_process_chunk1(tc, dec, cursor, len, &processed);
 			cursor += processed;
 			totals += processed;
 			t = 0;
@@ -671,13 +722,13 @@ hwt_coresight_process(struct trace_context *tc)
 		} else if (new_offs < cursor) {
 			/* New entries in the trace buffer. Buffer wrapped. */
 			len = tc->bufsize - cursor;
-			cs_process_chunk(tc, dec, cursor, len, &processed);
+			cs_process_chunk1(tc, dec, cursor, len, &processed);
 			cursor += processed;
 			totals += processed;
 
 			cursor = 0;
 			len = new_offs;
-			cs_process_chunk(tc, dec, cursor, len, &processed);
+			cs_process_chunk1(tc, dec, cursor, len, &processed);
 			cursor += processed;
 			totals += processed;
 			t = 0;
