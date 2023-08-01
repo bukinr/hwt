@@ -322,11 +322,6 @@ cs_process_chunk(struct trace_context *tc, struct cs_decoder *dec,
 	void *base;
 	int error;
 
-	if (tc->raw) {
-		error = cs_process_chunk_raw(tc, start, len, consumed);
-		return (error);
-	}
-
 	/* Coresight data is always on first cpu cdev due to funnelling by HW.*/
 	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
 
@@ -626,7 +621,10 @@ cs_process_chunk1(struct trace_context *tc, struct cs_decoder *dec,
 	int cpu_id;
 	int error;
 
-	if (tc->mode == HWT_MODE_CPU) {
+	if (tc->raw) {
+		error = cs_process_chunk_raw(tc, cursor, len, processed);
+		return (error);
+	} else if (tc->mode == HWT_MODE_CPU) {
 		CPU_FOREACH_ISSET(cpu_id, &tc->cpu_map) {
 			error = cs_process_chunk(tc, &dec[cpu_id], cursor, len,
 			    processed);
@@ -646,7 +644,9 @@ hwt_coresight_init1(struct trace_context *tc, struct cs_decoder *dec)
 	int cpu_id;
 	int error;
 
-	if (tc->mode == HWT_MODE_CPU) {
+	if (tc->raw) {
+		/* No decoder needed.*/
+	} else if (tc->mode == HWT_MODE_CPU) {
 		CPU_FOREACH_ISSET(cpu_id, &tc->cpu_map) {
 			error = hwt_coresight_init(tc, &dec[cpu_id], cpu_id);
 			if (error)
