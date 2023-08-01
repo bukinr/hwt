@@ -80,6 +80,7 @@ struct cs_decoder {
 	struct trace_context *tc;
 	int dp_ret;
 	int cpu_id;
+	FILE *out;
 };
 
 static ocsd_err_t
@@ -309,6 +310,7 @@ cs_process_chunk_raw(struct trace_context *tc, size_t start, size_t len,
 	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
 
 	fwrite(base, len, 1, tc->f);
+	fflush(tc->f);
 
 	*consumed = len;
 
@@ -396,25 +398,10 @@ gen_trace_elem_print_lookup(const void *p_context,
 	uint64_t newpc;
 	uint64_t ip;
 	FILE *out;
-	char filename[MAXPATHLEN];
 
 	dec = (struct cs_decoder *)p_context;
 	tc = dec->tc;
-
-	if (tc->filename) {
-		if (tc->mode == HWT_MODE_CPU)
-			snprintf(filename, MAXPATHLEN, "%s%d", tc->filename,
-			    dec->cpu_id);
-		else
-			snprintf(filename, MAXPATHLEN, "%s", tc->filename);
-
-		out = fopen(filename, "a");
-		if (out == NULL) {
-			printf("could not open %s\n", filename);
-			return (ENXIO);
-		}
-	} else
-		out = stdout;
+	out = dec->out;
 
 	resp = OCSD_RESP_CONT;
 
@@ -513,8 +500,7 @@ gen_trace_elem_print_lookup(const void *p_context,
 			/* image not found. */
 		}
 
-	if (tc->filename)
-		fclose(out);
+	fflush(dec->out);
 
 	return (resp);
 }
@@ -523,6 +509,7 @@ static int
 hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec,
     int thread_id)
 {
+	char filename[MAXPATHLEN];
 	int error;
 
 	dec->cpu_id = thread_id;
@@ -534,6 +521,21 @@ hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec,
 		printf("can't find dcd tree\n");
 		return (-1);
 	}
+
+	if (tc->filename) {
+		if (tc->mode == HWT_MODE_CPU)
+			snprintf(filename, MAXPATHLEN, "%s%d", tc->filename,
+			    dec->cpu_id);
+		else
+			snprintf(filename, MAXPATHLEN, "%s", tc->filename);
+
+		dec->out = fopen(filename, "w");
+		if (dec->out == NULL) {
+			printf("could not open %s\n", filename);
+			return (ENXIO);
+		}
+	} else
+		dec->out = stdout;
 
 	if (tc->flag_format)
 		cs_flags |= FLAG_FORMAT;
