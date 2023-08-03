@@ -79,7 +79,7 @@ struct trace_context {
 	char *filename;
 
 	int mode;
-	char *fs_root;
+	const char *fs_root;
 };
 
 struct pmcstat_process *hwt_process_alloc(void);

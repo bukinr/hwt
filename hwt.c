@@ -441,7 +441,7 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 }
 
 static int
-hwt_get_cpumask(const char *optarg, cpuset_t *cpumask)
+hwt_get_cpumask(const char *arg, cpuset_t *cpumask)
 {
 	const char *start;
 	int cpu_id;
@@ -449,7 +449,7 @@ hwt_get_cpumask(const char *optarg, cpuset_t *cpumask)
 
 	CPU_ZERO(cpumask);
 
-	start = optarg;
+	start = arg;
 
 	while (*start) {
 		cpu_id = strtol(start, &end, 0);
@@ -472,7 +472,6 @@ main(int argc, char **argv, char **env)
 {
 	struct trace_context *tc;
 	char *trace_dev_name;
-	cpuset_t cpumask;
 	int error;
 	int option;
 	int found;

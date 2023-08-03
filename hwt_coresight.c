@@ -389,17 +389,17 @@ gen_trace_elem_print_lookup(const void *p_context,
     const uint8_t trc_chan_id __unused,
     const ocsd_generic_trace_elem *elem)
 {
-	const struct trace_context *tc;
+	struct trace_context *tc;
 	struct pmcstat_image *image;
 	ocsd_datapath_resp_t resp;
 	struct pmcstat_symbol *sym;
 	unsigned long offset;
-	struct cs_decoder *dec;
+	const struct cs_decoder *dec;
 	uint64_t newpc;
 	uint64_t ip;
 	FILE *out;
 
-	dec = (struct cs_decoder *)p_context;
+	dec = (const struct cs_decoder *)p_context;
 	tc = dec->tc;
 	out = dec->out;
 
@@ -657,7 +657,6 @@ cs_process_chunk1(struct trace_context *tc, struct cs_decoder *dec,
 static int
 hwt_coresight_init1(struct trace_context *tc, struct cs_decoder *dec)
 {
-	int thread_id;
 	int cpu_id;
 	int error;
 
@@ -674,14 +673,17 @@ hwt_coresight_init1(struct trace_context *tc, struct cs_decoder *dec)
 			if (error)
 				return (error);
 		}
-	} else
+	} else {
 		error = hwt_coresight_init(tc, dec, tc->thread_id);
+		if (error)
+			return (error);
+	}
 
-	return (error);
+	return (0);
 }
 
 static void
-catch_int(int sig_num)
+catch_int(int sig_num __unused)
 {
 
 	printf("Decoder stopped\n");
@@ -700,7 +702,6 @@ hwt_coresight_process(struct trace_context *tc)
 	size_t cursor;
 	int len;
 	size_t totals;
-	int cpu_id;
 	int ncpu;
 
 	signal(SIGINT, catch_int);
