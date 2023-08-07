@@ -204,6 +204,7 @@ create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 	ocsd_vaddr_t address;
 	uint8_t *p_mem_buffer;
 	uint32_t mem_length;
+	uint64_t *t;
 	int ret;
 
 	dprintf("%s\n", __func__);
@@ -218,9 +219,9 @@ create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 	{
 		address = (ocsd_vaddr_t)tc->base;
 
-		uint64_t *t;
 		t = (uint64_t *)tc->base;
-		printf("%lx %lx %lx %lx\n", t[0], t[1], t[2], t[3]);
+
+		dprintf("%lx %lx %lx %lx\n", t[0], t[1], t[2], t[3]);
 
 		p_mem_buffer = (uint8_t *)tc->base;
 		mem_length = tc->bufsize;
@@ -229,9 +230,11 @@ create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 		    OCSD_MEM_SPACE_ANY, p_mem_buffer, mem_length);
 	}
 
-	if (ret != OCSD_OK)
+	if (ret != OCSD_OK) {
 		printf("%s: can't create memory accessor: ret %d\n",
 		    __func__, ret);
+		return (ENXIO);
+	}
 
 	return (ret);
 }
@@ -253,7 +256,7 @@ create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
 	if (ret != OCSD_OK)
 		return (-1);
 
-	printf("%s: CSID %d\n", __func__, CSID);
+	printf("%s: CSID to decode: %d.\n", __func__, CSID);
 
 	if (cs_flags & FLAG_FORMAT) {
 		ret = ocsd_dt_attach_packet_callback(handle, CSID,
@@ -264,8 +267,10 @@ create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
 
 	/* attach a memory accessor */
 	ret = create_test_memory_acc(handle, tc);
-	if (ret != OCSD_OK)
+	if (ret != OCSD_OK) {
 		ocsd_dt_remove_decoder(handle, CSID);
+		return (ENXIO);
+	}
 
 	return (ret);
 }
@@ -648,8 +653,10 @@ cs_process_chunk1(struct trace_context *tc, struct cs_decoder *dec,
 			if (error)
 				return (error);
 		}
-	} else
+	} else {
 		error = cs_process_chunk(tc, dec, cursor, len, processed);
+		return (error);
+	}
 
 	return (0);
 }
