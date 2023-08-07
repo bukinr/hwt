@@ -459,16 +459,13 @@ gen_trace_elem_print_lookup(const void *p_context,
 
 	if (sym) {
 		offset = newpc - (sym->ps_start + image->pi_vaddr);
-
 		fprintf(out, "pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n",
-		    //elem->elem_type,
 		    ip, newpc,
 		    pmcstat_string_unintern(image->pi_name),
 		    pmcstat_string_unintern(sym->ps_name), offset);
 	} else
 		if (image)
 			fprintf(out, "pc 0x%08lx (%lx)\t%12s\n",
-			    //elem->elem_type,
 			    ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
 		else {
