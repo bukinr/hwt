@@ -70,7 +70,6 @@ static int cs_flags = 0;
 #define	FLAG_FORMAT			(1 << 0)
 #define	FLAG_FRAME_RAW_UNPACKED		(1 << 1)
 #define	FLAG_FRAME_RAW_PACKED		(1 << 2)
-#define	FLAG_CALLBACK_MEM_ACC		(1 << 3)
 
 #define	PACKET_STR_LEN	1024
 static char packet_str[PACKET_STR_LEN];
@@ -184,20 +183,6 @@ packet_monitor(void *context __unused,
 	}
 }
 
-#if 0
-static uint32_t
-cs_decoder__mem_access(const void *context __unused,
-    const ocsd_vaddr_t address __unused,
-    const ocsd_mem_space_acc_t mem_space __unused,
-    const uint32_t req_size __unused, uint8_t *buffer __unused)
-{
-
-	/* TODO */
-
-	return (0);
-}
-#endif
-
 static ocsd_err_t
 create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 {
@@ -209,27 +194,17 @@ create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 
 	dprintf("%s\n", __func__);
 
-#if 0
-	if (cs_flags & FLAG_CALLBACK_MEM_ACC)
-		ret = ocsd_dt_add_callback_mem_acc(handle, base + start,
-			base + end - 1, OCSD_MEM_SPACE_ANY,
-			cs_decoder__mem_access, NULL);
-	else
-#endif
-	{
-		address = (ocsd_vaddr_t)tc->base;
+	address = (ocsd_vaddr_t)tc->base;
 
-		t = (uint64_t *)tc->base;
+	t = (uint64_t *)tc->base;
 
-		dprintf("%lx %lx %lx %lx\n", t[0], t[1], t[2], t[3]);
+	dprintf("%lx %lx %lx %lx\n", t[0], t[1], t[2], t[3]);
 
-		p_mem_buffer = (uint8_t *)tc->base;
-		mem_length = tc->bufsize;
+	p_mem_buffer = (uint8_t *)tc->base;
+	mem_length = tc->bufsize;
 
-		ret = ocsd_dt_add_buffer_mem_acc(handle, address,
-		    OCSD_MEM_SPACE_ANY, p_mem_buffer, mem_length);
-	}
-
+	ret = ocsd_dt_add_buffer_mem_acc(handle, address,
+	    OCSD_MEM_SPACE_ANY, p_mem_buffer, mem_length);
 	if (ret != OCSD_OK) {
 		printf("%s: can't create memory accessor: ret %d\n",
 		    __func__, ret);
@@ -410,19 +385,13 @@ gen_trace_elem_print_lookup(const void *p_context,
 
 	resp = OCSD_RESP_CONT;
 
-#if 0
 	dprintf("%s: Idx:%d ELEM TYPE %d, st_addr %lx, en_addr %lx\n",
 	    __func__, index_sop, elem->elem_type,
 	    elem->st_addr, elem->en_addr);
-#endif
 
-#if 0
-	if (elem->st_addr == -1)
+	if (elem->st_addr <= 0)
 		return (resp);
-#endif
 
-	if (elem->st_addr == 0)
-		return (resp);
 	ip = elem->st_addr;
 
 	sym = symbol_lookup(tc, ip, &image, &newpc);
