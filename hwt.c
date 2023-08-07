@@ -52,7 +52,7 @@
 #include "libpmcstat_stubs.h"
 #include <libpmcstat.h>
 
-#include "hwtvar.h"
+#include "hwt.h"
 
 #if defined(__aarch64__)
 #include "hwt_coresight.h"

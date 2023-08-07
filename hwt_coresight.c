@@ -51,7 +51,7 @@
 #include <opencsd/c_api/ocsd_c_api_types.h>
 #include <opencsd/c_api/opencsd_c_api.h>
 
-#include "hwtvar.h"
+#include "hwt.h"
 #include "hwt_coresight.h"
 
 #include "libpmcstat_stubs.h"
