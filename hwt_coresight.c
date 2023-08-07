@@ -515,8 +515,10 @@ hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec,
 	if (tc->flag_format)
 		cs_flags |= FLAG_FORMAT;
 
-	//cs_flags |= FLAG_FRAME_RAW_UNPACKED;
-	//cs_flags |= FLAG_FRAME_RAW_PACKED;
+#if 0
+	cs_flags |= FLAG_FRAME_RAW_UNPACKED;
+	cs_flags |= FLAG_FRAME_RAW_PACKED;
+#endif
 
 	error = create_decoder_etmv4(tc, dec->dcdtree_handle, thread_id);
 	if (error != OCSD_OK) {
