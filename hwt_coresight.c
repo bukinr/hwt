@@ -57,10 +57,10 @@
 #include "libpmcstat_stubs.h"
 #include <libpmcstat.h>
 
-#define	PMCTRACE_CS_DEBUG
-#undef	PMCTRACE_CS_DEBUG
+#define	HWT_CORESIGHT_DEBUG
+#undef	HWT_CORESIGHT_DEBUG
 
-#ifdef	PMCTRACE_CS_DEBUG
+#ifdef	HWT_CORESIGHT_DEBUG
 #define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
 #else
 #define	dprintf(fmt, ...)
@@ -554,7 +554,7 @@ hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec,
 		return (-2);
 	}
 
-#ifdef PMCTRACE_CS_DEBUG
+#ifdef HWT_CORESIGHT_DEBUG
 	ocsd_tl_log_mapped_mem_ranges(dec->dcdtree_handle);
 #endif
 

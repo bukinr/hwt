@@ -58,6 +58,15 @@
 #include "hwt_coresight.h"
 #endif
 
+#define	HWT_DEBUG
+#undef	HWT_DEBUG
+
+#ifdef	HWT_DEBUG
+#define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
+#else
+#define	dprintf(fmt, ...)
+#endif
+
 #define	PARENTSOCKET		0
 #define	CHILDSOCKET		1
 #define	NSOCKPAIRFD		2
@@ -217,9 +226,7 @@ hwt_get_offs(struct trace_context *tc, size_t *offs)
 	if (error)
 		return (error);
 
-#if 0
-	printf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
-#endif
+	dprintf("curpage %d curpage_offset %ld\n", curpage, curpage_offset);
 
 	*offs = curpage * PAGE_SIZE + curpage_offset;
 
