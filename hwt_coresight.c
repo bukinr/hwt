@@ -362,6 +362,16 @@ symbol_lookup(const struct trace_context *tc, uint64_t ip,
         return (NULL);
 }
 
+static void __unused
+print_timestamp(const ocsd_generic_trace_elem *elem)
+{
+	char ts[100];
+
+	if (elem->timestamp != 0)
+		sprintf(ts, "ts %ld", elem->timestamp);
+	else
+		sprintf(ts, "                  ");
+}
 
 static ocsd_datapath_resp_t
 gen_trace_elem_print_lookup(const void *p_context,
@@ -446,15 +456,6 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_CUSTOM:
 		return (resp);
 	};
-
-#if 0
-	char ts[100];
-
-	if (elem->timestamp != 0)
-		sprintf(ts, "ts %ld", elem->timestamp);
-	else
-		sprintf(ts, "                  ");
-#endif
 
 	if (sym) {
 		offset = newpc - (sym->ps_start + image->pi_vaddr);
