@@ -51,8 +51,10 @@
 
 #include "libpmcstat_stubs.h"
 #include <libpmcstat.h>
+#include <libxo/xo.h>
 
 #include "hwt.h"
+#include "hwt_libxo.h"
 
 #if defined(__aarch64__)
 #include "hwt_coresight.h"
@@ -507,6 +509,10 @@ main(int argc, char **argv, char **env)
 	tc->fs_root = "/";
 	tc->thread_id = 0;
 	thread_id_specified = 0;
+
+	argc = xo_parse_args(argc, argv);
+	if (argc < 0)
+		exit(EXIT_FAILURE);
 
 	while ((option = getopt(argc, argv, "R:gs:hc:b:rw:t:i:f:")) != -1)
 		switch (option) {
