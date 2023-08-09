@@ -421,7 +421,7 @@ gen_trace_elem_print_lookup(const void *p_context,
 		fprintf(out, "No sync.\n");
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_TRACE_ON:
-		fprintf(out, "Trace on.\n");
+		/* fprintf(out, "Trace on.\n"); */
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EO_TRACE:
 		fprintf(out, "End of Trace.\n");
@@ -457,20 +457,25 @@ gen_trace_elem_print_lookup(const void *p_context,
 		return (resp);
 	};
 
-	if (sym) {
-		offset = newpc - (sym->ps_start + image->pi_vaddr);
-		fprintf(out, "pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n",
-		    ip, newpc,
-		    pmcstat_string_unintern(image->pi_name),
-		    pmcstat_string_unintern(sym->ps_name), offset);
-	} else
-		if (image)
-			fprintf(out, "pc 0x%08lx (%lx)\t%12s\n",
-			    ip, newpc,
+	if (tc->mode == HWT_MODE_THREAD) {
+		if (sym) {
+			offset = newpc - (sym->ps_start + image->pi_vaddr);
+			fprintf(out, "pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n",
+			    ip, newpc, pmcstat_string_unintern(image->pi_name),
+			    pmcstat_string_unintern(sym->ps_name), offset);
+		} else if (image)
+			fprintf(out, "pc 0x%08lx (%lx)\t%12s\n", ip, newpc,
 			    pmcstat_string_unintern(image->pi_name));
-		else {
-			/* image not found. */
-		}
+	} else {
+		if (sym) {
+			offset = newpc - (sym->ps_start + image->pi_vaddr);
+			fprintf(out, "pc 0x%08lx\t%12s\t%s+0x%lx\n",
+			    ip, pmcstat_string_unintern(image->pi_name),
+			    pmcstat_string_unintern(sym->ps_name), offset);
+		} else if (image)
+			fprintf(out, "pc 0x%08lx (%lx)\t%12s\n", ip, newpc,
+			    pmcstat_string_unintern(image->pi_name));
+	}
 
 	fflush(dec->out);
 
