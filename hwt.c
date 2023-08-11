@@ -362,21 +362,17 @@ hwt_mode_cpu(struct trace_context *tc)
 }
 
 static int
-hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
+hwt_new_proc(struct trace_context *tc, int *sockpair, char **cmd, char **env,
+    uint32_t *nlibs0)
 {
 	struct stat st;
-	uint32_t tot_rec;
-	uint32_t nrec;
 	uint32_t nlibs;
-	int sockpair[NSOCKPAIRFD];
 	int error;
-
-	if (tc->func_name != NULL)
-		tc->suspend_on_mmap = 1;
 
 	error = stat(*cmd, &st);
 	if (error) {
-		printf("Could not find target executable, error %d.\n", error);
+		printf("Could not find target executable"
+		    " error %d.\n", error);
 		return (error);
 	}
 
@@ -396,12 +392,37 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 
 	printf("%s: process pid %d created\n", __func__, tc->pid);
 
+	*nlibs0 = nlibs;
+
+	return (0);
+}
+
+static int
+hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
+{
+	uint32_t tot_rec;
+	uint32_t nrec;
+	uint32_t nlibs;
+	int sockpair[NSOCKPAIRFD];
+	int error;
+
+	nlibs = 0;
+
+	if (tc->attach == 0) {
+		error = hwt_new_proc(tc, sockpair, cmd, env, &nlibs);
+		if (error)
+			return (error);
+
+		if (tc->func_name != NULL)
+			tc->suspend_on_mmap = 1;
+	}
+
 	tc->pp->pp_pid = tc->pid;
 
 	error = hwt_ctx_alloc(tc);
 	if (error) {
-		printf("%s: failed to alloc ctx, pid %d error %d\n", __func__,
-		    tc->pid, error);
+		printf("%s: failed to alloc thread-mode ctx, error %d "
+		    "errno %d\n", __func__, error, errno);
 		return (error);
 	}
 
@@ -415,7 +436,7 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 	if (error != 0)
 		errx(EX_DATAERR, "can't set config");
 
-	if (tc->func_name == NULL) {
+	if (tc->attach || tc->suspend_on_mmap == 0) {
 		/* No address range filtering. Start tracing immediately. */
 		error = hwt_start_tracing(tc);
 		if (error)
@@ -423,9 +444,11 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 			    error);
 	}
 
-	error = hwt_process_start(sockpair);
-	if (error != 0)
-		return (error);
+	if (tc->attach == 0) {
+		error = hwt_process_start(sockpair);
+		if (error != 0)
+			return (error);
+	}
 
 	printf("Expect %d records.\n", nlibs);
 
@@ -508,14 +531,19 @@ main(int argc, char **argv, char **env)
 	tc->mode = HWT_MODE_THREAD;
 	tc->fs_root = "/";
 	tc->thread_id = 0;
+	tc->attach = 0;
 	thread_id_specified = 0;
 
 	argc = xo_parse_args(argc, argv);
 	if (argc < 0)
 		exit(EXIT_FAILURE);
 
-	while ((option = getopt(argc, argv, "R:gs:hc:b:rw:t:i:f:")) != -1)
+	while ((option = getopt(argc, argv, "P:R:gs:hc:b:rw:t:i:f:")) != -1)
 		switch (option) {
+		case 'P':
+			tc->attach = 1;
+			tc->pid = atol(optarg);
+			break;
 		case 's':
 			tc->mode = HWT_MODE_CPU;
 			hwt_get_cpumask(optarg, &tc->cpu_map);
@@ -604,7 +632,7 @@ main(int argc, char **argv, char **env)
 	argv += optind;
 
 	if (tc->mode == HWT_MODE_THREAD) {
-		if (*argv == NULL)
+		if (*argv == NULL && tc->attach == 0)
 			usage();
 		error = hwt_mode_thread(tc, argv, env);
 	} else {
