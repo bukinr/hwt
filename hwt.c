@@ -384,7 +384,7 @@ hwt_new_proc(struct trace_context *tc, int *sockpair, char **cmd, char **env,
 
 	nlibs += 1; /* add binary itself. */
 
-	printf("cmd is %s, nlibs %d\n", *cmd, nlibs);
+	dprintf("cmd is %s, nlibs %d\n", *cmd, nlibs);
 
 	error = hwt_process_create(sockpair, cmd, env, &tc->pid);
 	if (error != 0)
