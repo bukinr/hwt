@@ -6,7 +6,7 @@ OBJS += hwt.o
 OBJS += hwt_libxo.o
 OBJS += libpmcstat_stubs.o
 
-LIBS += -lc++ -lc -lelf -lopencsd -lpmcstat -lxo
+LIBS += -lc++ -lc -lelf -lopencsd -lpmcstat -lxo -lutil
 
 all:
 	cc -c ${.CURDIR}/hwt_coresight.c -o hwt_coresight.o
