@@ -38,6 +38,7 @@
 #include <sys/cpuset.h>
 #include <sys/hwt.h>
 #include <sys/stat.h>
+#include <sys/user.h>
 
 #include <assert.h>
 #include <err.h>
@@ -48,6 +49,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <libutil.h>
 
 #include "libpmcstat_stubs.h"
 #include <libpmcstat.h>
@@ -320,6 +322,9 @@ hwt_mode_cpu(struct trace_context *tc)
 	if (error) {
 		printf("%s: failed to alloc cpu-mode ctx, error %d errno %d\n",
 		    __func__, error, errno);
+		if (errno == EPERM)
+			printf("Permission denied.");
+		printf("\n");
 		return (error);
 	}
 
@@ -398,6 +403,56 @@ hwt_new_proc(struct trace_context *tc, int *sockpair, char **cmd, char **env,
 }
 
 static int
+hwt_get_vmmap(struct trace_context *tc)
+{
+	struct kinfo_vmentry *vmmap, *kve;
+	int error;
+	int cnt;
+	int i, j;
+
+	pmcstat_interned_string path;
+	struct pmcstat_image *image;
+	struct pmc_plugins plugins;
+	struct pmcstat_args args;
+	unsigned long addr;
+
+	memset(&plugins, 0, sizeof(struct pmc_plugins));
+	memset(&args, 0, sizeof(struct pmcstat_args));
+	args.pa_fsroot = "/";
+
+	vmmap = kinfo_getvmmap(tc->pid, &cnt);
+	if (vmmap == NULL)
+		return (error);
+
+	printf("vmmap cnt %d\n", cnt);
+
+	for (i = 0, j = 0; i < cnt; i++) {
+		kve = &vmmap[i];
+		if ((kve->kve_protection & KVME_PROT_EXEC) == 0)
+			continue;
+		if (*kve->kve_path == '\0')
+			continue;
+
+		path = pmcstat_string_intern(kve->kve_path);
+		image = pmcstat_image_from_path(path, 0, &args, &plugins);
+		if (image == NULL)
+			continue;
+
+		if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
+			pmcstat_image_determine_type(image, &args);
+
+		addr = (unsigned long)kve->kve_start & ~1;
+		addr -= (image->pi_start - image->pi_vaddr);
+		pmcstat_image_link(tc->pp, image, addr);
+
+		printf("  lib #%d: path %s addr %lx\n", j++,
+		    kve->kve_path, (unsigned long)kve->kve_start);
+	}
+
+	return (0);
+}
+
+static int
 hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 {
 	uint32_t tot_rec;
@@ -421,8 +476,11 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 
 	error = hwt_ctx_alloc(tc);
 	if (error) {
-		printf("%s: failed to alloc thread-mode ctx, error %d "
-		    "errno %d\n", __func__, error, errno);
+		printf("%s: failed to alloc thread-mode ctx "
+		    "error %d errno %d\n", __func__, error, errno);
+		if (errno == EPERM)
+			printf("Permission denied.");
+		printf("\n");
 		return (error);
 	}
 
@@ -435,6 +493,9 @@ hwt_mode_thread(struct trace_context *tc, char **cmd, char **env)
 	error = tc->trace_dev->methods->set_config(tc);
 	if (error != 0)
 		errx(EX_DATAERR, "can't set config");
+
+	if (tc->attach)
+		hwt_get_vmmap(tc);
 
 	if (tc->attach || tc->suspend_on_mmap == 0) {
 		/* No address range filtering. Start tracing immediately. */
