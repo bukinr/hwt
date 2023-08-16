@@ -406,7 +406,6 @@ static int
 hwt_get_vmmap(struct trace_context *tc)
 {
 	struct kinfo_vmentry *vmmap, *kve;
-	int error;
 	int cnt;
 	int i, j;
 
@@ -422,7 +421,7 @@ hwt_get_vmmap(struct trace_context *tc)
 
 	vmmap = kinfo_getvmmap(tc->pid, &cnt);
 	if (vmmap == NULL)
-		return (error);
+		return (ENXIO);
 
 	printf("vmmap cnt %d\n", cnt);
 
