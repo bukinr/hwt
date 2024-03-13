@@ -28,7 +28,11 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/cpuset.h>
+#include <sys/hwt.h>
+
 #include <assert.h>
 #include <fcntl.h>
 #include <gelf.h>
@@ -37,12 +41,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "hwt.h"
+
 int
-hwt_elf_count_libs(const char *elf_path, int *nlibs0)
+hwt_elf_count_libs(const char *elf_path, uint32_t *nlibs0)
 {
-	const char *elfbase;
-	const char *path;
-	GElf_Shdr shdr, sh;
+	GElf_Shdr shdr;
 	GElf_Phdr ph;
 	GElf_Ehdr eh;
 	Elf_Scn *scn;
@@ -51,9 +55,9 @@ hwt_elf_count_libs(const char *elf_path, int *nlibs0)
 	Elf_Data *data;
 	GElf_Dyn dyn;
 	int is_dynamic;
-	int nlibs;
+	uint32_t nlibs;
 	int fd;
-	int i;
+	size_t i;
 
 	nlibs = 0;
 
@@ -86,7 +90,7 @@ hwt_elf_count_libs(const char *elf_path, int *nlibs0)
 
 	for (i = 0; i < eh.e_phnum; i++) {
 		if (gelf_getphdr(elf, i, &ph) != &ph) {
-			printf("could not get program header %d\n", i);
+			printf("could not get program header %zu\n", i);
 			return (-4);
 		}
 		switch (ph.p_type) {

@@ -35,6 +35,10 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
+#include <sys/cpuset.h>
+#include <sys/hwt.h>
+#include <sys/wait.h>
+#include <sys/sysctl.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,29 +53,69 @@
 #include <opencsd/c_api/opencsd_c_api.h>
 
 #include "hwt.h"
-#include "hwtvar.h"
 #include "hwt_coresight.h"
 
-#include "libpmcstat/libpmcstat.h"
+#include "libpmcstat_stubs.h"
+#include <libpmcstat.h>
+#include <libxo/xo.h>
 
-#define	PMCTRACE_CS_DEBUG
-//#undef	PMCTRACE_CS_DEBUG
+#define	HWT_CORESIGHT_DEBUG
+#undef	HWT_CORESIGHT_DEBUG
 
-#ifdef	PMCTRACE_CS_DEBUG
+#ifdef	HWT_CORESIGHT_DEBUG
 #define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
 #else
 #define	dprintf(fmt, ...)
 #endif
 
-static dcd_tree_handle_t dcdtree_handle;
 static int cs_flags = 0;
 #define	FLAG_FORMAT			(1 << 0)
 #define	FLAG_FRAME_RAW_UNPACKED		(1 << 1)
 #define	FLAG_FRAME_RAW_PACKED		(1 << 2)
-#define	FLAG_CALLBACK_MEM_ACC		(1 << 3)
 
 #define	PACKET_STR_LEN	1024
 static char packet_str[PACKET_STR_LEN];
+
+struct cs_decoder {
+	dcd_tree_handle_t dcdtree_handle;
+	struct trace_context *tc;
+	int dp_ret;
+	int cpu_id;
+	FILE *out;
+	xo_handle_t *xop;
+};
+
+static int
+hwt_coresight_mmap(struct trace_context *tc)
+{
+	char filename[32];
+	int tid;
+
+	/* Coresight maps memory only from the first CPU */
+	if (tc->mode == HWT_MODE_CPU)
+		tid = CPU_FFS(&tc->cpu_map) - 1;
+	else /* HWT_MODE_THREAD */
+		tid = 0;
+
+	sprintf(filename, "/dev/hwt_%d_%d", tc->ident, tid);
+
+	tc->thr_fd = open(filename, O_RDONLY);
+	if (tc->thr_fd < 0) {
+		printf("Can't open %s\n", filename);
+		return (-1);
+	}
+
+	tc->base = mmap(NULL, tc->bufsize, PROT_READ, MAP_SHARED, tc->thr_fd,
+	    0);
+	if (tc->base == MAP_FAILED) {
+		printf("mmap failed: err %d\n", errno);
+		return (-1);
+	}
+
+	printf("%s: tc->base %p\n", __func__, tc->base);
+
+	return (0);
+}
 
 static ocsd_err_t
 attach_raw_printers(dcd_tree_handle_t dcd_tree_h)
@@ -174,52 +218,36 @@ packet_monitor(void *context __unused,
 	}
 }
 
-static uint32_t
-cs_decoder__mem_access(const void *context __unused,
-    const ocsd_vaddr_t address __unused,
-    const ocsd_mem_space_acc_t mem_space __unused,
-    const uint32_t req_size __unused, uint8_t *buffer __unused)
-{
-
-	/* TODO */
-
-	return (0);
-}
-
 static ocsd_err_t
 create_test_memory_acc(dcd_tree_handle_t handle, struct trace_context *tc)
 {
 	ocsd_vaddr_t address;
 	uint8_t *p_mem_buffer;
 	uint32_t mem_length;
+#ifdef HWT_CORESIGHT_DEBUG
+	uint64_t *t;
+#endif
 	int ret;
 
 	dprintf("%s\n", __func__);
 
-#if 0
-	if (cs_flags & FLAG_CALLBACK_MEM_ACC)
-		ret = ocsd_dt_add_callback_mem_acc(handle, base + start,
-			base + end - 1, OCSD_MEM_SPACE_ANY,
-			cs_decoder__mem_access, NULL);
-	else
+	address = (ocsd_vaddr_t)tc->base;
+
+#ifdef HWT_CORESIGHT_DEBUG
+	t = (uint64_t *)tc->base;
+	printf("%lx %lx %lx %lx\n", t[0], t[1], t[2], t[3]);
 #endif
-	{
-		address = (ocsd_vaddr_t)tc->base;
 
-		uint64_t *t;
-		t = (uint64_t *)tc->base;
-		printf("%lx %lx %lx %lx\n", t[0], t[1], t[2], t[3]);
+	p_mem_buffer = (uint8_t *)tc->base;
+	mem_length = tc->bufsize;
 
-		p_mem_buffer = (uint8_t *)(tc->base + 0);
-		mem_length = tc->bufsize;
-
-		ret = ocsd_dt_add_buffer_mem_acc(handle, address,
-		    OCSD_MEM_SPACE_ANY, p_mem_buffer, mem_length);
-	}
-
-	if (ret != OCSD_OK)
+	ret = ocsd_dt_add_buffer_mem_acc(handle, address,
+	    OCSD_MEM_SPACE_ANY, p_mem_buffer, mem_length);
+	if (ret != OCSD_OK) {
 		printf("%s: can't create memory accessor: ret %d\n",
 		    __func__, ret);
+		return (ENXIO);
+	}
 
 	return (ret);
 }
@@ -241,6 +269,8 @@ create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
 	if (ret != OCSD_OK)
 		return (-1);
 
+	printf("%s: CSID to decode: %d.\n", __func__, CSID);
+
 	if (cs_flags & FLAG_FORMAT) {
 		ret = ocsd_dt_attach_packet_callback(handle, CSID,
 		    OCSD_C_API_CB_PKT_MON, packet_monitor, p_context);
@@ -250,34 +280,54 @@ create_generic_decoder(dcd_tree_handle_t handle, const char *p_name,
 
 	/* attach a memory accessor */
 	ret = create_test_memory_acc(handle, tc);
-	if (ret != OCSD_OK)
+	if (ret != OCSD_OK) {
 		ocsd_dt_remove_decoder(handle, CSID);
+		return (ENXIO);
+	}
 
 	return (ret);
 }
 
 static ocsd_err_t
-create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
+create_decoder_etmv4(struct trace_context *tc, dcd_tree_handle_t dcd_tree_h,
+    int thread_id)
 {
+	struct etmv4_config *config;
 	ocsd_etmv4_cfg trace_config;
+	uint32_t id_regs[14];
+	size_t regsize;
 	ocsd_err_t ret;
+	char name[32];
+	int error;
+	int i;
+
+	config = tc->config;
 
 	trace_config.arch_ver = ARCH_V8;
 	trace_config.core_prof = profile_CortexA;
+	trace_config.reg_configr = config->cfg;
+	/* TODO: take thread_id from config ? */
+	trace_config.reg_traceidr = thread_id + 1;
 
-	trace_config.reg_configr = 0x00001fc6;
-	trace_config.reg_configr = 0x000000C1;
-	trace_config.reg_traceidr = 0x00000010;   /* Trace ID */
+	for (i = 0; i < 14; i++) {
+		snprintf(name, 32, "dev.coresight_etm4x.0.idr%d", i);
+		regsize = sizeof(id_regs[i]);
+		error = sysctlbyname(name, &id_regs[i], &regsize, NULL, 0);
+		if (error) {
+			printf("Error: could not query ETMv4\n");
+			return (error);
+		}
+	}
 
-	trace_config.reg_idr0   = 0x28000ea1;
-	trace_config.reg_idr1   = 0x4100f424;
-	trace_config.reg_idr2   = 0x20001088;
-	trace_config.reg_idr8   = 0x0;
-	trace_config.reg_idr9   = 0x0;
-	trace_config.reg_idr10  = 0x0;
-	trace_config.reg_idr11  = 0x0;
-	trace_config.reg_idr12  = 0x0;
-	trace_config.reg_idr13  = 0x0;
+	trace_config.reg_idr0 = id_regs[0];
+	trace_config.reg_idr1 = id_regs[1];
+	trace_config.reg_idr2 = id_regs[2];
+	trace_config.reg_idr8 = id_regs[8];
+	trace_config.reg_idr9 = id_regs[9];
+	trace_config.reg_idr10 = id_regs[10];
+	trace_config.reg_idr11 = id_regs[11];
+	trace_config.reg_idr12 = id_regs[12];
+	trace_config.reg_idr13 = id_regs[13];
 
 	/* Instruction decoder. */
 	ret = create_generic_decoder(dcd_tree_h, OCSD_BUILTIN_DCD_ETMV4I,
@@ -287,51 +337,42 @@ create_decoder_etmv4(dcd_tree_handle_t dcd_tree_h, struct trace_context *tc)
 }
 
 static int
-cs_process_chunk(struct trace_context *tc, size_t start, size_t end)
+cs_process_chunk_raw(struct trace_context *tc, size_t start, size_t len,
+    uint32_t *consumed)
 {
-	uint32_t bytes_done;
-	uint8_t *p_block;
-	uint32_t bytes_this_time;
-	int block_index;
-	size_t block_size;
-	int dp_ret;
-	int ret;
+	void *base;
 
-	dprintf("%s: tc->base %#p\n", __func__, tc->base);
+	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
 
-	bytes_this_time = 0;
-	block_index = start;
-	bytes_done = 0;
-	block_size = end - start;
-	p_block = (uint8_t *)(tc->base + start);
+	fwrite(base, len, 1, tc->raw_f);
+	fflush(tc->raw_f);
 
-	ret = OCSD_OK;
-	dp_ret = OCSD_RESP_CONT;
-
-	while (bytes_done < (uint32_t)block_size && (ret == OCSD_OK)) {
-
-		if (OCSD_DATA_RESP_IS_CONT(dp_ret)) {
-			dprintf("process data, block_size %ld, bytes_done %d\n",
-			    block_size, bytes_done);
-			dp_ret = ocsd_dt_process_data(dcdtree_handle,
-			    OCSD_OP_DATA,
-			    block_index + bytes_done,
-			    block_size - bytes_done,
-			    ((uint8_t *)p_block) + bytes_done,
-			    &bytes_this_time);
-			bytes_done += bytes_this_time;
-			dprintf("BYTES DONE %d\n", bytes_done);
-		} else if (OCSD_DATA_RESP_IS_WAIT(dp_ret)) {
-			dp_ret = ocsd_dt_process_data(dcdtree_handle,
-			    OCSD_OP_FLUSH, 0, 0, NULL, NULL);
-		} else {
-			ret = OCSD_ERR_DATA_DECODE_FATAL;
-		}
-	}
-
-	//ocsd_dt_process_data(dcdtree_handle, OCSD_OP_EOT, 0, 0, NULL, NULL);
+	*consumed = len;
 
 	return (0);
+}
+
+static int
+cs_process_chunk(struct trace_context *tc, struct cs_decoder *dec,
+    size_t start, size_t len, uint32_t *consumed)
+{
+	void *base;
+	int error;
+
+	/* Coresight data is always on first cpu cdev due to funnelling by HW.*/
+	base = (void *)((uintptr_t)tc->base + (uintptr_t)start);
+
+	dprintf("Processing data for CPU%d\n", dec->cpu_id);
+
+	error = ocsd_dt_process_data(dec->dcdtree_handle,
+	    OCSD_OP_DATA, start, len, base, consumed);
+
+	if (*consumed != len) {
+		printf("error");
+		exit(5);
+	}
+
+	return (error);
 }
 
 struct pmcstat_pcmap *
@@ -350,8 +391,8 @@ pmcstat_process_find_map(struct pmcstat_process *p, uintfptr_t pc)
 }
 
 static struct pmcstat_symbol *
-symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img,
-    uint64_t *newpc0)
+symbol_lookup(const struct trace_context *tc, uint64_t ip,
+    struct pmcstat_image **img, uint64_t *newpc0)
 {
 	struct pmcstat_image *image;
 	struct pmcstat_symbol *sym;
@@ -376,6 +417,16 @@ symbol_lookup(struct trace_context *tc, uint64_t ip, struct pmcstat_image **img,
         return (NULL);
 }
 
+static void __unused
+print_timestamp(const ocsd_generic_trace_elem *elem)
+{
+	char ts[100];
+
+	if (elem->timestamp != 0)
+		sprintf(ts, "ts %ld", elem->timestamp);
+	else
+		sprintf(ts, "                  ");
+}
 
 static ocsd_datapath_resp_t
 gen_trace_elem_print_lookup(const void *p_context,
@@ -383,31 +434,31 @@ gen_trace_elem_print_lookup(const void *p_context,
     const uint8_t trc_chan_id __unused,
     const ocsd_generic_trace_elem *elem)
 {
-	struct pmcstat_image *image;
 	struct trace_context *tc;
+	struct pmcstat_image *image;
 	ocsd_datapath_resp_t resp;
 	struct pmcstat_symbol *sym;
 	unsigned long offset;
+	const struct cs_decoder *dec;
+	const char *piname;
+	const char *psname;
 	uint64_t newpc;
 	uint64_t ip;
+	FILE *out;
 
-	tc = (struct trace_context *)p_context;
+	dec = (const struct cs_decoder *)p_context;
+	tc = dec->tc;
+	out = dec->out;
 
 	resp = OCSD_RESP_CONT;
 
-#if 0
 	dprintf("%s: Idx:%d ELEM TYPE %d, st_addr %lx, en_addr %lx\n",
 	    __func__, index_sop, elem->elem_type,
 	    elem->st_addr, elem->en_addr);
-#endif
 
-#if 1
-	if (elem->st_addr == -1)
+	if (elem->st_addr <= 0)
 		return (resp);
 
-	if (elem->st_addr == 0)
-		return (resp);
-#endif
 	ip = elem->st_addr;
 
 	sym = symbol_lookup(tc, ip, &image, &newpc);
@@ -421,16 +472,16 @@ gen_trace_elem_print_lookup(const void *p_context,
 
 	switch (elem->elem_type) {
 	case OCSD_GEN_TRC_ELEM_UNKNOWN:
-		printf("Unknown packet.\n");
+		fprintf(out, "Unknown packet.\n");
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_NO_SYNC:
-		printf("No sync.\n");
+		fprintf(out, "No sync.\n");
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_TRACE_ON:
-		printf("Trace on.\n");
+		/* fprintf(out, "Trace on.\n"); */
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EO_TRACE:
-		printf("End of Trace.\n");
+		fprintf(out, "End of Trace.\n");
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_PE_CONTEXT:
 		break;
@@ -442,17 +493,17 @@ gen_trace_elem_print_lookup(const void *p_context,
 	case OCSD_GEN_TRC_ELEM_ADDR_UNKNOWN:
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EXCEPTION:
-		printf("Exception #%d (%s)\n", elem->exception_number,
+		fprintf(out, "Exception #%d (%s)\n", elem->exception_number,
 		    ARMv8Excep[elem->exception_number]);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EXCEPTION_RET:
-		printf("Exception RET to %lx\n", elem->st_addr);
+		fprintf(out, "Exception RET to %lx\n", elem->st_addr);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_TIMESTAMP:
-		printf("Timestamp: %lx\n", elem->timestamp);
+		fprintf(out, "Timestamp: %lx\n", elem->timestamp);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_CYCLE_COUNT:
-		printf("Cycle count: %d\n", elem->cycle_count);
+		fprintf(out, "Cycle count: %d\n", elem->cycle_count);
 		return (resp);
 	case OCSD_GEN_TRC_ELEM_EVENT:
 	case OCSD_GEN_TRC_ELEM_SWTRACE:
@@ -463,135 +514,328 @@ gen_trace_elem_print_lookup(const void *p_context,
 		return (resp);
 	};
 
-#if 0
-	char ts[100];
 
-	if (elem->timestamp != 0)
-		sprintf(ts, "ts %ld", elem->timestamp);
-	else
-		sprintf(ts, "                  ");
-#endif
+	if (sym || image) {
+		xo_open_instance("entry");
+		xo_emit_h(dec->xop, "{:pc/pc 0x%08lx/%x}", ip);
+		xo_emit_h(dec->xop, " ");
+	}
+
+	if (image) {
+		if (tc->mode == HWT_MODE_THREAD) {
+			xo_emit_h(dec->xop, "{:newpc/(%lx)/%x}", newpc);
+			xo_emit_h(dec->xop, "\t");
+		}
+
+		piname = pmcstat_string_unintern(image->pi_name);
+		xo_emit_h(dec->xop, "{:piname/%12s/%s}", piname);
+	}
 
 	if (sym) {
+		psname = pmcstat_string_unintern(sym->ps_name);
 		offset = newpc - (sym->ps_start + image->pi_vaddr);
+		xo_emit_h(dec->xop, "\t");
+		xo_emit_h(dec->xop, "{:psname/%s/%s}", psname);
+		xo_emit_h(dec->xop, "{:offset/+0x%lx/%ju}", offset);
+	}
 
-		printf("cpu%d: pc 0x%08lx (%lx)\t%12s\t%s+0x%lx\n", //elem->elem_type,
-		    tc->cpu_id,
-		    ip, newpc,
-		    pmcstat_string_unintern(image->pi_name),
-		    pmcstat_string_unintern(sym->ps_name), offset);
-	} else
-		if (image)
-			printf("cpu%d: pc 0x%08lx (%lx)\t%12s\n", //elem->elem_type,
-			    tc->cpu_id,
-			    ip, newpc,
-			    pmcstat_string_unintern(image->pi_name));
-		else {
-			/* image not found. */
-		}
+	if (sym || image) {
+		xo_emit_h(dec->xop, "\n");
+		xo_close_instance("entry");
+	}
+
+	xo_flush();
 
 	return (resp);
 }
 
-int
-hwt_coresight_init(struct trace_context *tc)
+static int
+hwt_coresight_init(struct trace_context *tc, struct cs_decoder *dec,
+    int thread_id)
 {
-	uintptr_t start, end;
+	char filename[MAXPATHLEN];
 	int error;
 
-	ocsd_def_errlog_init(OCSD_ERR_SEV_INFO, 1);
-
-	dcdtree_handle = ocsd_create_dcd_tree(OCSD_TRC_SRC_FRAME_FORMATTED,
+	dec->cpu_id = thread_id;
+	dec->tc = tc;
+	dec->dp_ret = OCSD_RESP_CONT;
+	dec->dcdtree_handle = ocsd_create_dcd_tree(OCSD_TRC_SRC_FRAME_FORMATTED,
 	    OCSD_DFRMTR_FRAME_MEM_ALIGN);
-	if (dcdtree_handle == C_API_INVALID_TREE_HANDLE) {
+	if (dec->dcdtree_handle == C_API_INVALID_TREE_HANDLE) {
 		printf("can't find dcd tree\n");
 		return (-1);
 	}
 
-	//cs_flags |= FLAG_FORMAT;
+	if (tc->filename) {
+		if (tc->mode == HWT_MODE_CPU)
+			snprintf(filename, MAXPATHLEN, "%s%d", tc->filename,
+			    dec->cpu_id);
+		else
+			snprintf(filename, MAXPATHLEN, "%s", tc->filename);
 
-	error = create_decoder_etmv4(dcdtree_handle, tc);
+		dec->out = fopen(filename, "w");
+		if (dec->out == NULL) {
+			printf("could not open %s\n", filename);
+			return (ENXIO);
+		}
+		dec->xop = xo_create_to_file(dec->out, XO_STYLE_TEXT, XOF_WARN);
+	} else {
+		dec->out = stdout;
+		dec->xop = NULL;
+	}
+
+	if (tc->flag_format)
+		cs_flags |= FLAG_FORMAT;
+
+#if 0
+	cs_flags |= FLAG_FRAME_RAW_UNPACKED;
+	cs_flags |= FLAG_FRAME_RAW_PACKED;
+#endif
+
+	error = create_decoder_etmv4(tc, dec->dcdtree_handle, thread_id);
 	if (error != OCSD_OK) {
-		printf("can't create decoder: tc->base %#p\n", tc->base);
+		printf("can't create decoder: tc->base %p\n", tc->base);
 		return (-2);
 	}
 
-#ifdef PMCTRACE_CS_DEBUG
-	ocsd_tl_log_mapped_mem_ranges(dcdtree_handle);
+#ifdef HWT_CORESIGHT_DEBUG
+	ocsd_tl_log_mapped_mem_ranges(dec->dcdtree_handle);
 #endif
 
 	if (cs_flags & FLAG_FORMAT)
-		ocsd_dt_set_gen_elem_printer(dcdtree_handle);
+		ocsd_dt_set_gen_elem_printer(dec->dcdtree_handle);
 	else
-		ocsd_dt_set_gen_elem_outfn(dcdtree_handle,
-		    gen_trace_elem_print_lookup, tc);
+		ocsd_dt_set_gen_elem_outfn(dec->dcdtree_handle,
+		    gen_trace_elem_print_lookup, dec);
 
-	attach_raw_printers(dcdtree_handle);
+	attach_raw_printers(dec->dcdtree_handle);
 
 	return (0);
 }
 
-int
-hwt_coresight_process(struct trace_context *tcs)
+static void
+hwt_coresight_fill_config(struct trace_context *tc, struct etmv4_config *config)
 {
-	struct trace_context *tc;
-	size_t start;
-	size_t end;
-	size_t offs;
+	int excp_level;
+	uint32_t reg;
+	uint32_t val;
+	int i;
+
+	memset(config, 0, sizeof(struct etmv4_config));
+
+	reg = TRCCONFIGR_RS | TRCCONFIGR_TS;
+	reg |= TRCCONFIGR_CID | TRCCONFIGR_VMID;
+	reg |= TRCCONFIGR_COND_DIS;
+	config->cfg = reg;
+
+	config->ts_ctrl = 0;
+	config->syncfreq = TRCSYNCPR_4K;
+
+	if (tc->mode == HWT_MODE_THREAD)
+		excp_level = 0; /* User mode. */
+	else
+		excp_level = 1; /* CPU mode. */
+
+	reg = TRCVICTLR_SSSTATUS;
+	reg |= (1 << EVENT_SEL_S);
+	reg |= TRCVICTLR_EXLEVEL_NS(1 << excp_level);
+	reg |= TRCVICTLR_EXLEVEL_S(1 << excp_level);
+	config->vinst_ctrl = reg;
+
+	/* Address-range filtering. */
+	val = 0;
+	for (i = 0; i < tc->nranges * 2; i++) {
+		config->addr_val[i] = tc->addr_ranges[i];
+
+		reg = TRCACATR_EXLEVEL_S(1 << excp_level);
+		reg |= TRCACATR_EXLEVEL_NS(1 << excp_level);
+		config->addr_acc[i] = reg;
+
+		/* Include the range ID. */
+		val |= (1 << (TRCVIIECTLR_INCLUDE_S + i / 2));
+	}
+	config->viiectlr = val;
+}
+
+static int
+hwt_coresight_set_config(struct trace_context *tc)
+{
+	struct hwt_set_config sconf;
+	struct etmv4_config *config;
 	int error;
 
-	/* Coresight data is always on CPU0 due to funnelling by HW. */
-	tc = &tcs[0];
+	config = malloc(sizeof(struct etmv4_config));
+	hwt_coresight_fill_config(tc, config);
 
-	hwt_coresight_init(tc);
+	tc->config = config;
 
-	error = hwt_get_offs(tc, &offs);
-	if (error)
-		return (-1);
+	sconf.config = config;
+	sconf.config_size = sizeof(struct etmv4_config);
+	sconf.config_version = 1;
+	sconf.pause_on_mmap = tc->suspend_on_mmap ? 1 : 0;
 
-	printf("data to process %ld\n", offs);
+	error = ioctl(tc->thr_fd, HWT_IOC_SET_CONFIG, &sconf);
 
-	start = 0;
-	end = offs;
+	return (error);
+}
 
-	cs_process_chunk(tc, start, end);
+static int
+cs_process_chunk1(struct trace_context *tc, struct cs_decoder *dec,
+    size_t cursor, size_t len, uint32_t *processed)
+{
+	int cpu_id;
+	int error;
 
-	while (1) {
-		if (tc->terminate)
-			break;
-
-		error = hwt_get_offs(tc, &offs);
-		if (error)
-			return (-1);
-
-		if (offs == end) {
-			/* No new entries in trace. */
-			hwt_sleep();
-			continue;
+	if (tc->raw) {
+		error = cs_process_chunk_raw(tc, cursor, len, processed);
+		return (error);
+	} else if (tc->mode == HWT_MODE_CPU) {
+		CPU_FOREACH_ISSET(cpu_id, &tc->cpu_map) {
+			error = cs_process_chunk(tc, &dec[cpu_id], cursor, len,
+			    processed);
+			if (error)
+				return (error);
 		}
-
-		if (offs > end) {
-			/* New entries in the trace buffer. */
-			start = end;
-			end = offs;
-			cs_process_chunk(tc, start, end);
-			hwt_sleep();
-			continue;
-		}
-
-		if (offs < end) {
-			/* New entries in the trace buffer. Buffer wrapped. */
-			start = end;
-			end = tc->bufsize;
-			cs_process_chunk(tc, start, end);
-
-			start = 0;
-			end = offs;
-			cs_process_chunk(tc, start, end);
-
-			hwt_sleep();
-		}
+	} else {
+		error = cs_process_chunk(tc, dec, cursor, len, processed);
+		return (error);
 	}
 
 	return (0);
 }
+
+static int
+hwt_coresight_init1(struct trace_context *tc, struct cs_decoder *dec)
+{
+	int cpu_id;
+	int error;
+
+	if (tc->raw) {
+		/* No decoder needed, just a file for raw data. */
+		tc->raw_f = fopen(tc->filename, "w");
+		if (tc->raw_f == NULL) {
+			printf("could not open file %s\n", tc->filename);
+			return (ENXIO);
+		}
+	} else if (tc->mode == HWT_MODE_CPU) {
+		CPU_FOREACH_ISSET(cpu_id, &tc->cpu_map) {
+			error = hwt_coresight_init(tc, &dec[cpu_id], cpu_id);
+			if (error)
+				return (error);
+		}
+	} else {
+		error = hwt_coresight_init(tc, dec, tc->thread_id);
+		if (error)
+			return (error);
+	}
+
+	return (0);
+}
+
+static void
+catch_int(int sig_num __unused)
+{
+
+	printf("Decoder stopped\n");
+	exit(0);
+}
+
+static int
+hwt_coresight_process(struct trace_context *tc)
+{
+	size_t offs;
+	size_t new_offs;
+	int error;
+	int t;
+	struct cs_decoder *dec;
+	uint32_t processed;
+	size_t cursor;
+	int len;
+	size_t totals;
+	int ncpu;
+
+	xo_open_container("trace");
+	xo_open_list("entries");
+
+	signal(SIGINT, catch_int);
+
+	ocsd_def_errlog_init(OCSD_ERR_SEV_INFO, 1);
+
+	ncpu = hwt_ncpu();
+
+	dec = malloc(sizeof(struct cs_decoder) * ncpu);
+
+	error = hwt_coresight_init1(tc, dec);
+	if (error)
+		return (error);
+
+	error = hwt_get_offs(tc, &offs);
+	if (error) {
+		printf("%s: cant get offset\n", __func__);
+		return (-1);
+	}
+
+
+	printf("Decoder started. Press ctrl+c to stop.\n");
+
+	cursor = 0;
+	processed = 0;
+	totals = 0;
+	len = offs;
+
+	cs_process_chunk1(tc, dec, cursor, len, &processed);
+	cursor += processed;
+	totals += processed;
+
+	t = 0;
+
+	while (1) {
+		error = hwt_get_offs(tc, &new_offs);
+		if (error)
+			return (-1);
+
+		if (new_offs == cursor) {
+			/* No new entries in trace. */
+			if (tc->terminate && t++ > 2)
+				break;
+			hwt_sleep(10);
+		} else if (new_offs > cursor) {
+			/* New entries in the trace buffer. */
+			len = new_offs - cursor;
+			cs_process_chunk1(tc, dec, cursor, len, &processed);
+			cursor += processed;
+			totals += processed;
+			t = 0;
+
+		} else if (new_offs < cursor) {
+			/* New entries in the trace buffer. Buffer wrapped. */
+			len = tc->bufsize - cursor;
+			cs_process_chunk1(tc, dec, cursor, len, &processed);
+			cursor += processed;
+			totals += processed;
+
+			cursor = 0;
+			len = new_offs;
+			cs_process_chunk1(tc, dec, cursor, len, &processed);
+			cursor += processed;
+			totals += processed;
+			t = 0;
+		}
+	}
+
+	printf("\nBytes processed: %ld\n", totals);
+
+	xo_close_list("file");
+	xo_close_container("wc");
+	if (xo_finish() < 0)
+		xo_err(EXIT_FAILURE, "stdout");
+
+	return (0);
+}
+
+struct trace_dev_methods cs_methods = {
+	.init = NULL,
+	.mmap = hwt_coresight_mmap,
+	.process = hwt_coresight_process,
+	.set_config = hwt_coresight_set_config,
+};

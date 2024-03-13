@@ -34,6 +34,8 @@
 #include <sys/mman.h>
 #include <sys/errno.h>
 #include <sys/wait.h>
+#include <sys/cpuset.h>
+#include <sys/hwt.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -45,9 +47,9 @@
 #include <string.h>
 
 #include "hwt.h"
-#include "hwtvar.h"
 
-#include "libpmcstat/libpmcstat.h"
+#include "libpmcstat_stubs.h"
+#include <libpmcstat.h>
 
 struct pmcstat_image_hash_list pmcstat_image_hash[PMCSTAT_NHASH];
 
@@ -77,7 +79,7 @@ hwt_process_onsig(int signo)
 }
 
 int
-hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0)
+hwt_process_create(int *sockpair, char **cmd, char **env __unused, int *pid0)
 {
 	char token;
 	pid_t pid;

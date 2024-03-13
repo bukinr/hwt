@@ -33,18 +33,33 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
+#include <sys/cpuset.h>
+#include <sys/hwt.h>
+#include <sys/hwt_record.h>
+#include <sys/stat.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sysexits.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <err.h>
 #include <string.h>
 
 #include "hwt.h"
-#include "hwtvar.h"
 
-#include "libpmcstat/libpmcstat.h"
+#include "libpmcstat_stubs.h"
+#include <libpmcstat.h>
+
+#define	HWT_RECORD_DEBUG
+#undef	HWT_RECORD_DEBUG
+
+#ifdef	HWT_RECORD_DEBUG
+#define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
+#else
+#define	dprintf(fmt, ...)
+#endif
 
 int
 hwt_record_fetch(struct trace_context *tc, int *nrecords)
@@ -56,10 +71,11 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 	struct pmcstat_args args;
 	unsigned long addr;
 	struct hwt_record_get record_get;
+	char imagepath[PATH_MAX];
+	struct stat st;
 	int nentries;
 	int error;
 	int j;
-	int i;
 
 	memset(&plugins, 0, sizeof(struct pmc_plugins));
 	memset(&args, 0, sizeof(struct pmcstat_args));
@@ -68,42 +84,74 @@ hwt_record_fetch(struct trace_context *tc, int *nrecords)
 
 	tc->records = malloc(sizeof(struct hwt_record_user_entry) * nentries);
 
-	record_get.pid = tc->pid;
-	record_get.cpu_id = tc->cpu_id;
 	record_get.records = tc->records;
 	record_get.nentries = &nentries;
 
-	error = ioctl(tc->fd, HWT_IOC_RECORD_GET, &record_get);
+	error = ioctl(tc->thr_fd, HWT_IOC_RECORD_GET, &record_get);
 	if (error != 0) {
-		printf("RECORD_GET cpuid %d error %d entires %d\n", i, error, nentries);
+		printf("RECORD_GET error %d entires %d\n",
+		    error, nentries);
 		return (error);
 	}
+
+	dprintf("%s: error %d: nent %d\n", __func__, error, nentries);
 
 	for (j = 0; j < nentries; j++) {
 		entry = &tc->records[j];
 
-		printf("  lib #%d: path %s addr %lx size %lx\n", j,
-		    entry->fullpath,
-		    (unsigned long)entry->addr,
-		    entry->size);
+		switch (entry->record_type) {
+		case HWT_RECORD_MMAP:
+		case HWT_RECORD_MUNMAP:
+		case HWT_RECORD_EXECUTABLE:
+		case HWT_RECORD_INTERP:
+			printf("  lib #%d: path %s addr %lx\n", j,
+			    entry->fullpath,
+			    (unsigned long)entry->addr);
 
-		path = pmcstat_string_intern(entry->fullpath);
-		if ((image = pmcstat_image_from_path(path, 0,
-		    &args, &plugins)) == NULL)
-			return (-1);
+			path = pmcstat_string_intern(entry->fullpath);
+			image = pmcstat_image_from_path(path, 0, &args,
+			    &plugins);
+			if (image == NULL)
+				return (-1);
 
-		if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
-			pmcstat_image_determine_type(image, &args);
+			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
+				pmcstat_image_determine_type(image, &args);
 
-		addr = (unsigned long)entry->addr & ~1;
-		addr -= (image->pi_start - image->pi_vaddr);
-		pmcstat_image_link(tc->pp, image, addr);
-#if 0
-		printf("image pi_vaddr %lx pi_start %lx pi_entry %lx\n",
-		    (unsigned long)image->pi_vaddr,
-		    (unsigned long)image->pi_start,
-		    (unsigned long)image->pi_entry);
-#endif
+			addr = (unsigned long)entry->addr & ~1;
+			addr -= (image->pi_start - image->pi_vaddr);
+			pmcstat_image_link(tc->pp, image, addr);
+			dprintf("image pi_vaddr %lx pi_start %lx"
+			    " pi_entry %lx\n",
+			    (unsigned long)image->pi_vaddr,
+			    (unsigned long)image->pi_start,
+			    (unsigned long)image->pi_entry);
+			hwt_mmap_received(tc, entry);
+			break;
+		case HWT_RECORD_KERNEL:
+			snprintf(imagepath, sizeof(imagepath), "%s/%s",
+			    tc->fs_root, entry->fullpath);
+			error = stat(imagepath, &st);
+			if (error)
+				errx(EX_OSERR, "Image \"%s\" not found\n",
+				    imagepath);
+			printf("  image #%d: path %s addr %lx\n", j,
+			    imagepath, (unsigned long)entry->addr);
+			path = pmcstat_string_intern(imagepath);
+			image = pmcstat_image_from_path(path, 1, &args,
+			    &plugins);
+			if (image == NULL)
+				return (-1);
+			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
+				pmcstat_image_determine_type(image, &args);
+			addr = (unsigned long)entry->addr & ~1;
+			pmcstat_image_link(tc->pp, image, addr);
+			break;
+		case HWT_RECORD_THREAD_CREATE:
+		case HWT_RECORD_THREAD_SET_NAME:
+			break;
+		default:
+			break;
+		}
 	}
 
 	*nrecords = nentries;

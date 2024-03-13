@@ -1,5 +1,6 @@
 /*-
  * Copyright (c) 2023 Ruslan Bukin <br@bsdpad.com>
+ * All rights reserved.
  *
  * This work was supported by Innovate UK project 105694, "Digital Security
  * by Design (DSbD) Technology Platform Prototype".
@@ -24,58 +25,79 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * $FreeBSD$
  */
 
-/* User-visible header. */
+#ifndef	_HWTVAR_H_
+#define	_HWTVAR_H_
 
-#ifndef _DEV_HWT_HWT_H_
-#define _DEV_HWT_HWT_H_
+#define	TC_MAX_ADDR_RANGES	16
 
-#define	HWT_MAGIC	0x42
-#define	HWT_IOC_ALLOC \
-	_IOW(HWT_MAGIC, 0x00, struct hwt_alloc)
-#define	HWT_IOC_START \
-	_IOW(HWT_MAGIC, 0x01, struct hwt_start)
-#define	HWT_IOC_RECORD_GET \
-	_IOW(HWT_MAGIC, 0x02, struct hwt_record_get)
-#define	HWT_IOC_BUFPTR_GET \
-	_IOW(HWT_MAGIC, 0x03, struct hwt_bufptr_get)
+struct trace_context;
 
-#define	HWT_BACKEND_MAXNAMELEN	256
+struct trace_dev_methods {
+	int (*init)(struct trace_context *tc);
+	int (*mmap)(struct trace_context *tc);
+	int (*process)(struct trace_context *tc);
+	int (*set_config)(struct trace_context *tc);
+};
 
-struct hwt_alloc {
-	size_t		bufsize;
-	pid_t		pid;
-	int		cpu_id;
-	char		*backend_name;
-} __aligned(16);
+struct trace_dev {
+	const char *name;
+	const char *fullname;
+	struct trace_dev_methods *methods;
+};
 
-struct hwt_start {
-	pid_t		pid;
-	int		cpu_id;
-} __aligned(16);
+struct trace_context {
+	struct trace_dev *trace_dev;
+	struct pmcstat_process *pp;
+	struct hwt_record_user_entry *records;
+	void *base;
+	size_t bufsize;
+	int attach;
+	int pid;
+	cpuset_t cpu_map;
+	int fd;
+	int thr_fd;
+	int terminate;
+	int kqueue_fd;
 
-struct hwt_record_user_entry {
-	char fullpath[MAXPATHLEN];
-	uintptr_t addr;
-	size_t size;
-} __aligned(16);
+	int thread_id;
+	int ident;
 
-struct hwt_record_get {
-	struct hwt_record_user_entry	*records;
-	int				*nentries;
-	int				cpu_id;
-	pid_t				pid;
-} __aligned(16);
+	/* Address range filtering. */
+	int suspend_on_mmap;
+	char *image_name;
+	char *func_name;
+	uintptr_t addr_ranges[TC_MAX_ADDR_RANGES * 2];
+	int nranges;
 
-struct hwt_bufptr_get {
-	int		*ptr;
-	int		*curpage;
-	vm_offset_t	*curpage_offset;
-	int		cpu_id;
-	pid_t		pid;
-} __aligned(16);
+	/* Backend-specific config. */
+	void *config;
+	int flag_format;
 
-#endif /* !_DEV_HWT_HWT_H_ */
+	/* Raw trace. */
+	int raw;
+	FILE *raw_f;
+
+	/* Trace file. */
+	char *filename;
+
+	int mode;
+	const char *fs_root;
+};
+
+struct pmcstat_process *hwt_process_alloc(void);
+int hwt_process_create(int *sockpair, char **cmd, char **env, int *pid0);
+int hwt_process_start(int *sockpair);
+int hwt_record_fetch(struct trace_context *tc, int *nrecords);
+void hwt_procexit(pid_t pid, int status);
+int hwt_get_offs(struct trace_context *tc, size_t *offs);
+void hwt_sleep(int msec);
+int hwt_elf_count_libs(const char *elf_path, uint32_t *nlibs0);
+int hwt_find_sym(struct trace_context *tc);
+int hwt_start_tracing(struct trace_context *tc);
+int hwt_mmap_received(struct trace_context *tc,
+    struct hwt_record_user_entry *entry);
+int hwt_ncpu(void);
+
+#endif /* !_HWTVAR_H_ */
